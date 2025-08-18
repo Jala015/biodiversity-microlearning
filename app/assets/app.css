@@ -1,4 +1,9 @@
 @import "tailwindcss";
 @plugin "daisyui" {
-    themes: emerald --default, night --prefersdark;
+    themes: emerald --default, forest --prefersdark;
+}
+@plugin "@tailwindcss/typography";
+
+body {
+    @apply bg-base-200 min-h-screen;
 }

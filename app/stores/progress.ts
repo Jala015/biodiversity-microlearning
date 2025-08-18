@@ -1,23 +1,15 @@
 // Store que lida com o progresso de revisão de cartas de diferentes decks usando o algoritmo FSRS (Fuzzy Spaced Repetition System).
 
 import { defineStore } from "pinia"
-import { generatorParameters, createEmptyCard, Card, fsrs, Grade } from 'ts-fsrs'; 
+import { generatorParameters, createEmptyCard, fsrs } from 'ts-fsrs'; 
 // @ts-ignore
 import app_config from "/app_config.yaml"
+import type { Deck, CardWithData } from "~~/types";
+
 // ----------------- Tipos -----------------
 export type ReviewRating = "again" | "hard" | "good" | "easy"
 
-export interface FsrsCardState extends Card {
-    id: string // id único do card (ligado à espécie/pacote)
-}
 
-export interface Deck {
-    id: string
-    title: string
-    cards: Record<string, FsrsCardState>,
-    source: 'curated'|'generated' // curated or auto-generated
-    description?: string 
-}
 
 export interface ProgressState {
     decks: Record<string, Deck>
@@ -46,7 +38,7 @@ export const useProgressStore = defineStore("progress", {
         initDeck(deckId: string, title: string, cardIds: string[], source: 'curated'|'generated' = 'generated') {
             if (this.decks[deckId]) return
 
-            const cards: Record<string, FsrsCardState> = {}
+            const cards: Record<string, CardWithData> = {}
             cardIds.forEach((id) => {
                 const base = createEmptyCard()
                 cards[id] = { ...base, id }
@@ -92,7 +84,7 @@ export const useProgressStore = defineStore("progress", {
         /**
          * Retorna todos os cards de um deck que estão prontos para revisão. Se não passar nenhum deckId, retorna todos os cards de todos os decks, mas mostra apenas os ids e datas de vencimento.
          */
-        getDueCards(deckId: string): FsrsCardState[] | {due:Date, id:string}[] {
+        getDueCards(deckId: string): CardWithData[] | {due:Date, id:string}[] {
             const deck = this.decks[deckId]
             if (!deck) {
                 // Se não passar deckId, retorna todos os cards de todos os decks
@@ -105,9 +97,9 @@ export const useProgressStore = defineStore("progress", {
 
             const now = new Date()
             return Object.values(deck.cards).filter((c) => {
-                const card = c as FsrsCardState
+                const card = c as CardWithData
                 return new Date(card.due) <= now
-            }) as FsrsCardState[]
+            }) as CardWithData[]
         },
 
         /**
@@ -122,5 +114,14 @@ export const useProgressStore = defineStore("progress", {
                 deck.cards[cardId] = { ...base, id: cardId }
             })
         },
+
+        listDecks(): Omit<Deck, 'cards'>[] {
+            return Object.values(this.decks).map((deck) => ({
+                id: deck.id,
+                title: deck.title,
+                source: deck.source,
+                description: deck.description,
+            }))
+        }
     },
 })
