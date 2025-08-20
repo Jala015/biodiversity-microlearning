@@ -6,10 +6,10 @@ const route = useRoute();
 
 <template>
   <div class="dock  z-40">
-    <button :class="{'dock-active text-secondary after:bg-secondary after:translate-y-2': route.name === 'index'}" >
+    <NuxtLink to="/decks" :class="{'dock-active text-secondary after:bg-secondary after:translate-y-2': route.path.split('/').includes('decks')}" >
         <PhPackage :size="24"  />
         <span class="dock-label">Decks</span>
-    </button>
+    </NuxtLink>
 
     <button>
       <PhCardsThree :size="24"  />

@@ -94,6 +94,8 @@ onMounted(() => {
     attribution: "&copy; OpenStreetMap contributors",
   }).addTo(map);
 
+  L.control.scale({imperial:false, position:'topright'}).addTo(map);
+
   // 3️⃣ FeatureGroup para armazenar shapes
   drawnItems = new L.FeatureGroup();
   map.addLayer(drawnItems);
