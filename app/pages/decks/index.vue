@@ -21,7 +21,7 @@ const decks = ref<Omit<Deck, "cards">[]>([
 
 <template>
   <div class="flex mx-auto items-center my-4 gap-2 justify-center">
-    Novo: 
+    Novo Deck: 
     <NuxtLink to="/decks/novo-inat" class="btn btn-outline btn-primary"><PhMapPinSimpleArea :size="20" />Gerar do iNat</NuxtLink>
     ou
     <button class="btn btn-outline btn-warning"><PhBoxArrowDown :size="20" />Pacotes pré-montados</button>

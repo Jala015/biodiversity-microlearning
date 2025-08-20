@@ -20,8 +20,8 @@ defineProps<{
         </div>
         <div class="card-actions justify-end p-2">
           <button
-            class="badge badge-primary badge-soft"
-            :class="{ 'badge-warning!': deck.source === 'curated' }"
+            class="badge badge-soft"
+            :class="{ 'badge-warning': deck.source === 'curated', 'badge-primary': deck.source === 'generated' }"
           >
             {{ deck.source === "curated" ? "Pré-montado" : "iNat" }}
           </button>

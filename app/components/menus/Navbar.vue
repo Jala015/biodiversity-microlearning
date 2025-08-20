@@ -12,10 +12,12 @@ const breadcrumb = computed(() => {
 <template>
   <div class="flex items-center justify-between p-2 px-4">
     <div class="flex-1">
-      <div class="breadcrumbs text-secondary">
+      <div class="breadcrumbs text-secondary overflow-visible">
         <ul>
-          <li class="font-black ">
+          <li class="font-black hover:-rotate-3 hover:scale-105 transition-transform ease-in-out">
+            <NuxtLink to="/" class="hover:no-underline!">
             {{ app_name }}
+            </NuxtLink>
           </li>
           <li v-for="(crumb, index) in breadcrumb" :key="index">
               <NuxtLink class="opacity-70 hover:opacity-100 transition-opacity hover:no-underline! " v-if="index + 1 <= breadcrumb.length -1" :to="`/${breadcrumb.slice(0, index + 1).join('/')}`">{{
