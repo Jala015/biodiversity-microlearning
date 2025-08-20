@@ -3,7 +3,7 @@
 import { defineStore } from "pinia"
 import { generatorParameters, createEmptyCard, fsrs } from 'ts-fsrs'; 
 // @ts-ignore
-import app_config from "/app_config.yaml"
+import app_config from "~/app_config.yaml"
 import type { Deck, CardWithData } from "~~/types";
 
 // ----------------- Tipos -----------------
