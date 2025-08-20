@@ -27,10 +27,10 @@ defineProps<{
           </button>
         </div>
       </div>
-      <div class="card shadow-md bg-base-100 dark:brightness-110">
+      <div class="card shadow-md bg-base-200 dark:brightness-110">
         <div class="card-body"></div>
       </div>
-      <div class="card shadow-md bg-base-100 dark:brightness-105">
+      <div class="card shadow-md bg-base-200 dark:brightness-105">
         <div class="card-body"></div>
       </div>
     </div>
