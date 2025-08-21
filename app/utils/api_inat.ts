@@ -185,3 +185,5 @@ export async function montarDetalhesDasEspecies(speciesKeys: string[], maxSpecie
     console.log(`✓ ${speciesMap.size} espécies únicas processadas com sucesso`);
     return speciesMap;
 }
+
+// TODO realizar o pre cache das fotos das espécies, com nuxt pwa
