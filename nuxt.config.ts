@@ -9,5 +9,5 @@ export default defineNuxtConfig({
   },
   css: ["~/assets/app.css"],
   modules: ['@pinia/nuxt', 'pinia-plugin-persistedstate/nuxt', '@nuxt/test-utils/module'],
-
+  plugins: ['~/plugins/deck-db.ts'],
 })

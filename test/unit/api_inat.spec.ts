@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+// @ts-ignore
 import { obterEspeciesMaisComuns, montarDetalhesDasEspecies } from "~/utils/api_inat";
 
 const circulo = {
