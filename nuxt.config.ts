@@ -12,8 +12,6 @@ export default defineNuxtConfig({
     driver: ['localforage.INDEXEDDB', 'localforage.LOCALSTORAGE'],
     name: 'imageCache',
     storeName: 'images',
-    version: 1.0,
-    size: 4980736, // 5MB
   }]],
   plugins: ['~/plugins/deck-db.ts'],
 

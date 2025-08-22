@@ -1,6 +1,8 @@
+// Importar a função do Redis
+import { obterImagemCurada } from '~/utils/redis'
+
 // Função para buscar o nome popular em português
 interface GbifVernacularName { vernacularName: string; language: string; }
-
 
 // Helper functions
 async function nomePopularEmPortugues(speciesKey: string): Promise<string | undefined> {
@@ -76,113 +78,158 @@ interface EspecieComDados {
     nome_popular?: string;
     media?: { identifier: string, type: string, license: string, rightsHolder: string }[];
 }
+
 export async function montarDetalhesDasEspecies(speciesKeys: string[], maxSpecies: number, counts: Map<string, number>): Promise<Map<string, EspecieComDados>> {
-    const params = new URLSearchParams({
-        mediaType: 'StillImage',
-        limit: maxSpecies.toString(),
-    })
-
-    // Processar em lotes para evitar URLs muito longas
-    const batchSize = 10;
-    const allOccurrences: GbifOccurrence[] = [];
-
-    for (let i = 0; i < speciesKeys.length; i += batchSize) {
-        const batch = speciesKeys.slice(i, i + batchSize);
-        const batchParams = new URLSearchParams(params);
-        batch.forEach(key => batchParams.append('speciesKey', key));
-
-        const url = `https://api.gbif.org/v1/occurrence/search?${batchParams.toString()}`;
-
+    console.log(`🔍 Processando ${speciesKeys.length} espécies...`);
+    
+    const speciesMap = new Map<string, EspecieComDados>();
+    let especiesComImagem = 0;
+    
+    // Primeiro: tentar buscar imagens curadas para todas as espécies
+    const especiesComImagemCurada = new Set<string>();
+    
+    console.log(`🎨 Verificando imagens curadas no Redis...`);
+    for (const speciesKey of speciesKeys.slice(0, maxSpecies * 2)) {
         try {
-            const response = await $fetch<{
-                results: GbifOccurrence[]
-            }>(url);
-
-            console.log(`📦 Lote ${i / batchSize + 1}: ${response.results.length} ocorrências encontradas`);
-            allOccurrences.push(...response.results);
-
-            // Parar se já temos espécies suficientes com mídia
-            const uniqueWithMedia = new Set(
-                allOccurrences
-                    .filter(occ => occ.speciesKey && occ.media?.length)
-                    .map(occ => occ.speciesKey!.toString())
-            );
-
-            if (uniqueWithMedia.size >= maxSpecies) {
-                console.log(`✓ Encontradas ${uniqueWithMedia.size} espécies com mídia, parando busca`);
-                break;
+            const imagemCurada = await obterImagemCurada(speciesKey);
+            
+            if (imagemCurada) {
+                especiesComImagemCurada.add(speciesKey);
+                
+                // Buscar nome popular
+                const nomePopular = await nomePopularEmPortugues(speciesKey);
+                const count = counts.get(speciesKey) || 0;
+                
+                // Buscar nome científico via API do GBIF
+                const speciesInfo = await $fetch<{ scientificName: string }>(`https://api.gbif.org/v1/species/${speciesKey}`);
+                
+                speciesMap.set(speciesKey, {
+                    speciesKey,
+                    nome_cientifico: speciesInfo.scientificName,
+                    nome_popular: nomePopular,
+                    media: [{
+                        identifier: imagemCurada,
+                        type: 'StillImage',
+                        license: 'Curada',
+                        rightsHolder: 'Curadoria'
+                    }],
+                    contagemOcorrencias: count
+                });
+                
+                especiesComImagem++;
+                console.log(`✓ Imagem curada encontrada para ${speciesInfo.scientificName}`);
+                
+                // Parar se já temos espécies suficientes
+                if (especiesComImagem >= maxSpecies) {
+                    console.log(`✓ ${especiesComImagem} espécies com imagens curadas coletadas`);
+                    return speciesMap;
+                }
             }
         } catch (error) {
-            console.error(`❌ Erro ao buscar lote ${i / batchSize + 1}:`, error);
-            continue; // Continua com o próximo lote
+            console.error(`❌ Erro ao processar imagem curada para ${speciesKey}:`, error);
+            continue;
         }
     }
+    
+    console.log(`🎨 ${especiesComImagemCurada.size} espécies com imagens curadas encontradas`);
+    
+    // Se ainda precisamos de mais espécies, buscar no GBIF
+    const especiesRestantes = maxSpecies - especiesComImagem;
+    if (especiesRestantes > 0) {
+        console.log(`📷 Buscando ${especiesRestantes} espécies adicionais no GBIF...`);
+        
+        // Filtrar espécies que ainda não temos
+        const speciesKeysRestantes = speciesKeys.filter(key => !especiesComImagemCurada.has(key));
+        
+        const params = new URLSearchParams({
+            mediaType: 'StillImage',
+            limit: (especiesRestantes * 3).toString(), // Buscar mais para ter opções
+        });
 
-    console.log(`📊 Total de ocorrências coletadas: ${allOccurrences.length}`);
+        // Processar em lotes para evitar URLs muito longas
+        const batchSize = 10;
+        const allOccurrences: GbifOccurrence[] = [];
 
-    // Processar ocorrências de forma síncrona primeiro
-    const speciesMap = new Map<string, EspecieComDados>();
+        for (let i = 0; i < speciesKeysRestantes.length && especiesComImagem < maxSpecies; i += batchSize) {
+            const batch = speciesKeysRestantes.slice(i, i + batchSize);
+            const batchParams = new URLSearchParams(params);
+            batch.forEach(key => batchParams.append('speciesKey', key));
 
-    // Agrupar ocorrências por speciesKey
-    const groupedBySpecies = new Map<string, GbifOccurrence[]>();
+            const url = `https://api.gbif.org/v1/occurrence/search?${batchParams.toString()}`;
 
-    allOccurrences.forEach(occ => {
-        if (!occ.speciesKey) return;
+            try {
+                const response = await $fetch<{
+                    results: GbifOccurrence[]
+                }>(url);
 
-        const key = occ.speciesKey.toString();
-        if (!groupedBySpecies.has(key)) {
-            groupedBySpecies.set(key, []);
+                console.log(`📦 Lote GBIF ${Math.floor(i / batchSize) + 1}: ${response.results.length} ocorrências encontradas`);
+                allOccurrences.push(...response.results);
+
+                // Parar se já temos espécies suficientes com mídia
+                const uniqueWithMedia = new Set(
+                    allOccurrences
+                        .filter(occ => occ.speciesKey && occ.media?.length)
+                        .map(occ => occ.speciesKey!.toString())
+                );
+
+                if (especiesComImagem + uniqueWithMedia.size >= maxSpecies) {
+                    console.log(`✓ Coletadas espécies suficientes, parando busca GBIF`);
+                    break;
+                }
+            } catch (error) {
+                console.error(`❌ Erro ao buscar lote GBIF ${Math.floor(i / batchSize) + 1}:`, error);
+                continue;
+            }
         }
-        groupedBySpecies.get(key)!.push(occ);
-    });
 
-    // Filtrar apenas espécies que têm mídia
-    const speciesWithMedia = Array.from(groupedBySpecies.entries())
-        .filter(([key, occurrences]) => {
-            return occurrences.some(occ => occ.media?.length && occ.media.length > 0);
-        })
-        .slice(0, maxSpecies);
+        // Processar ocorrências do GBIF
+        const groupedBySpecies = new Map<string, GbifOccurrence[]>();
+        allOccurrences.forEach(occ => {
+            if (!occ.speciesKey) return;
+            const key = occ.speciesKey.toString();
+            if (!groupedBySpecies.has(key)) {
+                groupedBySpecies.set(key, []);
+            }
+            groupedBySpecies.get(key)!.push(occ);
+        });
 
-    console.log(`🎨 ${speciesWithMedia.length} espécies têm mídia disponível`);
+        // Filtrar apenas espécies que têm mídia e ainda precisamos
+        const speciesWithMedia = Array.from(groupedBySpecies.entries())
+            .filter(([key, occurrences]) => {
+                return occurrences.some(occ => occ.media?.length && occ.media.length > 0);
+            })
+            .slice(0, especiesRestantes);
 
-    for (const [key, occurrences] of speciesWithMedia) {
-        // Buscar a melhor ocorrência com mídia
-        const occWithMedia = occurrences.find(occ => occ.media?.length && occ.media.length > 0);
+        console.log(`📷 ${speciesWithMedia.length} espécies do GBIF têm mídia disponível`);
 
-        if (!occWithMedia) continue; // Extra segurança, mas não deveria acontecer
+        for (const [key, occurrences] of speciesWithMedia) {
+            if (especiesComImagem >= maxSpecies) break;
+            
+            const occWithMedia = occurrences.find(occ => occ.media?.length && occ.media.length > 0);
+            if (!occWithMedia) continue;
 
-        try {
-            // Buscar nome popular de forma assíncrona mas aguardando
-            const nomePopular = await nomePopularEmPortugues(key);
+            try {
+                const nomePopular = await nomePopularEmPortugues(key);
+                const count = counts.get(key) || 0;
 
-            let count = counts.get(key) || 0;
-
-            speciesMap.set(key, {
-                speciesKey: key,
-                nome_cientifico: occWithMedia.scientificName,
-                nome_popular: nomePopular,
-                media: occWithMedia.media || [],
-                contagemOcorrencias: count
-            });
-
-            console.log(`✓ Processada espécie: ${occWithMedia.scientificName} (${nomePopular || 'sem nome popular'})`);
-
-        } catch (error) {
-            console.error(`❌ Erro ao processar espécie ${key}:`, error);
-            // Ainda adiciona, mas só se tiver mídia
-            if (occWithMedia.media?.length && occWithMedia.media.length > 0) {
                 speciesMap.set(key, {
                     speciesKey: key,
-                    nome_cientifico: occWithMedia.scientificName || '',
-                    nome_popular: undefined,
-                    media: occWithMedia.media,
-                    contagemOcorrencias: counts.get(key) || 0
+                    nome_cientifico: occWithMedia.scientificName,
+                    nome_popular: nomePopular,
+                    media: occWithMedia.media || [],
+                    contagemOcorrencias: count
                 });
+
+                especiesComImagem++;
+                console.log(`✓ Processada espécie GBIF: ${occWithMedia.scientificName} (${nomePopular || 'sem nome popular'})`);
+
+            } catch (error) {
+                console.error(`❌ Erro ao processar espécie GBIF ${key}:`, error);
+                continue;
             }
         }
     }
 
-    console.log(`✓ ${speciesMap.size} espécies únicas processadas com sucesso`);
+    console.log(`✅ Total: ${especiesComImagem} espécies processadas (${especiesComImagemCurada.size} curadas + ${especiesComImagem - especiesComImagemCurada.size} GBIF)`);
     return speciesMap;
 }
-
