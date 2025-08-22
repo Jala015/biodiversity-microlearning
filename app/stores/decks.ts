@@ -1,7 +1,7 @@
 // stores/deck.ts
 import { defineStore } from "pinia";
 import { openDB, type IDBPDatabase } from "idb";
-import { debounce } from "lodash"; // ou qualquer debounce simples
+import { debounce } from "lodash";
 
 export interface Card {
   id: string;
@@ -16,12 +16,16 @@ export interface DeckConfig {
   taxaErro: number;
   minCooldown: number;
   pesoRevisao: number;
-}""""""""
-  ""
-  ""
-  ""
-  "",
+}
 
+export type NivelDificuldade = "facil" | "medio" | "medio-avancado" | "dificil";
+
+export const ORDEM_NIVEIS: NivelDificuldade[] = [
+  "facil",
+  "medio",
+  "medio-avancado",
+  "dificil",
+];
 
 export const useDeckStore = defineStore("deck", {
   state: () => ({
@@ -38,6 +42,86 @@ export const useDeckStore = defineStore("deck", {
     } as DeckConfig,
     _db: null as IDBPDatabase | null,
   }),
+
+  getters: {
+    // Estatísticas do nível atual
+    currentLevelStats: (state) => {
+      const cardsNivelAtual = state.levelsQueue.filter(
+        (card) => card.nivel === state.currentLevel,
+      );
+      const cardsRevisaoNivelAtual = state.reviewQueue.filter(
+        (card) => card.nivel === state.currentLevel,
+      );
+      const cardsCooldownNivelAtual = state.cooldownQueue.filter(
+        (card) => card.nivel === state.currentLevel,
+      );
+
+      return {
+        nivel: state.currentLevel,
+        novos: cardsNivelAtual.length,
+        revisao: cardsRevisaoNivelAtual.length,
+        cooldown: cardsCooldownNivelAtual.length,
+        total:
+          cardsNivelAtual.length +
+          cardsRevisaoNivelAtual.length +
+          cardsCooldownNivelAtual.length,
+      };
+    },
+
+    // Estatísticas gerais do deck
+    deckStats: (state) => {
+      const totalCards =
+        state.levelsQueue.length +
+        state.reviewQueue.length +
+        state.cooldownQueue.length;
+
+      return {
+        totalCards,
+        novos: state.levelsQueue.length,
+        revisao: state.reviewQueue.length,
+        cooldown: state.cooldownQueue.length,
+        globalCounter: state.globalCounter,
+      };
+    },
+
+    // Próximo nível disponível
+    nextAvailableLevel: (state) => {
+      const currentIndex = ORDEM_NIVEIS.indexOf(state.currentLevel);
+      if (currentIndex < ORDEM_NIVEIS.length - 1) {
+        return ORDEM_NIVEIS[currentIndex + 1];
+      }
+      return null;
+    },
+
+    // Verifica se há cards prontos para revisão do nível atual
+    hasCurrentLevelReviews: (state) => {
+      return state.reviewQueue.some(
+        (card) => card.nivel === state.currentLevel,
+      );
+    },
+
+    // Distribuição de cards por nível
+    cardsByLevel: (state) => {
+      const distribution: Record<
+        NivelDificuldade,
+        { novos: number; revisao: number; cooldown: number }
+      > = {
+        facil: { novos: 0, revisao: 0, cooldown: 0 },
+        medio: { novos: 0, revisao: 0, cooldown: 0 },
+        "medio-avancado": { novos: 0, revisao: 0, cooldown: 0 },
+        dificil: { novos: 0, revisao: 0, cooldown: 0 },
+      };
+
+      state.levelsQueue.forEach((card) => distribution[card.nivel].novos++);
+      state.reviewQueue.forEach((card) => distribution[card.nivel].revisao++);
+      state.cooldownQueue.forEach(
+        (card) => distribution[card.nivel].cooldown++,
+      );
+
+      return distribution;
+    },
+  },
+
   actions: {
     async initDB(dbName = "deckDB", dbVersion = 1) {
       const db = await openDB(dbName, dbVersion, {
@@ -48,48 +132,19 @@ export const useDeckStore = defineStore("deck", {
       this._db = db;
 
       const saved = await db.get("state", "pinia");
-      if (saved) Object.assign(this.$state, saved);      //Hookcom debounce para salvar automaticamente
-      const saveDebounceddebounce(async () => {
+      if (saved) Object.assign(this.$state, saved);
+
+      // Hook com debounce para salvar automaticamente
+      const saveDebounced = debounce(async () => {
         if (this._db) {
-          await this._db.put("state", this.$state, "pinia")
-      } 500); // salva no máximo a cada 500ms      this.$subscribe(() => {
+          await this._db.put("state", this.$state, "pinia");
+        }
+      }, 500); // salva no máximo a cada 500ms
+
+      this.$subscribe(() => {
         saveDebounced();
       });
-prender coisas novas)
-             * •ão varia conforme quantos cards estão prontos para revisão:
-             * - Se há muitos → prioriza revisão
-             * - Se há poucos → foca em conteúdo novo
-             * - Se não há nenhum em uma das filas → pega da outra
-         */
-            const cardsNovos = this.levelsQueue.length;
-            constcum tipo de card, pega dele
-            if (cardsRevisao === 0) {
-                return this.levelsQueue.shift() || null; // Próximo card novo
-            }
-
-            if (ca // Card mais antigo da revisão            }
-
-            // BALANCEAMENTO AUTOMÁTICO
-            // Quanto mais cards de revisão acumulados, maior a prioridade de revisar
-
-            // Peso base: cards novos sempre têm peso 1
-            const pesoCardsNovos = cardsNovos;
-
-            // Peso revisão: cada card de revisão vale uma fração (0.3 por padrão)
-            // Isso significa que quanto mais revisões acumulam, maior a chance delas serem escolhidas
-            const pesoCardsRevisao = cardsRevisao * this.config.pesoRevisao;
-
-            // Peso total para sorteio
-            const pesoTotal = pesoCardsNovos + pesoCardsRevisao;
-
-            // Sorteia um número entre 0 e o peso total
-            const sorteio = Math.random() * pesoTotal;
-
-            // Decide baseado no sorteio
-            if (sorteio < pesoCardsRevisao) {
-                // Caiu na faixa de revisão → pega o mais antigo (FIFO)
-                return this.reviewQueue.shift() || null;
-lseCaiu na faixa de cards novos → próximo da fila (FIFOhft    },
+    },
 
     incrementGlobalCounter() {
       this.globalCounter += 1;
@@ -100,19 +155,23 @@ lseCaiu na faixa de cards novos → próximo da fila (FIFOhft    },
     },
 
     canAdvanceLevel(): boolean {
+      // testa se pode avançar para o próximo nível (caso a fila de cartas esteja vazia)
       const currentIndex = ORDEM_NIVEIS.indexOf(this.currentLevel);
       return (
-        currentIndex < ORDEM_NIVEIS.length - 1 &&
+        currentIndex < ORDEM_NIVEIS.length - 1 && // o nivel atual não é o último
         this.levelsQueue.filter((card) => card.nivel === this.currentLevel)
-          .length === 0
+          .length === 0 // não há cartas do nível atual na fila
       );
     },
 
     advanceLevel(): boolean {
       if (this.canAdvanceLevel()) {
         const currentIndex = ORDEM_NIVEIS.indexOf(this.currentLevel);
-        this.currentLevel = ORDEM_NIVEIS[currentIndex + 1];
-        return true;
+        const nextLevel = ORDEM_NIVEIS[currentIndex + 1];
+        if (nextLevel) {
+          this.currentLevel = nextLevel;
+          return true;
+        }
       }
       return false;
     },
@@ -120,12 +179,6 @@ lseCaiu na faixa de cards novos → próximo da fila (FIFOhft    },
     getAvailableCardsForCurrentLevel(): Card[] {
       return this.levelsQueue.filter(
         (card) => card.nivel === this.currentLevel,
-      );
-    },
-
-    getAvailableCardsForOtherLevels(): Card[] {
-      return this.levelsQueue.filter(
-        (card) => card.nivel !== this.currentLevel,
       );
     },
 
@@ -164,34 +217,30 @@ lseCaiu na faixa de cards novos → próximo da fila (FIFOhft    },
        * SISTEMA DE BALANCEAMENTO AUTOMÁTICO COM NÍVEIS
        *
        * A cada jogada, balanceia automaticamente entre:
-       * • Mostrar cards novos do nível atual (prioridade)
-       * • Mostrar cards novos de outros níveis (se necessário)
+       * • Mostrar cards novos do nível atual (prioridade máxima)
        * • Fazer revisão de cards antigos (consolidar conhecimento)
        *
        * O sistema prioriza cards do nível atual, mas pode avançar automaticamente
        * quando não há mais cards novos no nível atual.
+       *
+       * Quando o deck acaba, retorna null.
        */
 
       const cardsNovosNivelAtual = this.getAvailableCardsForCurrentLevel();
-      const cardsNovosOutrosNiveis = this.getAvailableCardsForOtherLevels();
       const cardsRevisao = this.reviewQueue;
 
-      const totalCardsNovos =
-        cardsNovosNivelAtual.length + cardsNovosOutrosNiveis.length;
-
       // Se não há cards disponíveis
-      if (totalCardsNovos === 0 && cardsRevisao.length === 0) {
+      if (cardsNovosNivelAtual.length === 0 && cardsRevisao.length === 0) {
         return null;
       }
 
       // Se só há revisões
-      if (totalCardsNovos === 0) {
+      if (cardsNovosNivelAtual.length === 0) {
         return this.reviewQueue.shift() || null;
       }
 
       // Se só há cards novos
       if (cardsRevisao.length === 0) {
-        // Prioriza nível atual, senão pega de outros níveis
         if (cardsNovosNivelAtual.length > 0) {
           const cardIndex = this.levelsQueue.findIndex(
             (card) => card.nivel === this.currentLevel,
@@ -202,25 +251,23 @@ lseCaiu na faixa de cards novos → próximo da fila (FIFOhft    },
           if (this.canAdvanceLevel()) {
             this.advanceLevel();
             return this.drawNextCard(); // Recursão para tentar novamente no novo nível
+          } else {
+            // Se não pode avançar, significa que o deck acabou.
+            return null;
           }
-          // Se não pode avançar, pega qualquer card novo disponível
-          return this.levelsQueue.shift() || null;
         }
       }
 
       // BALANCEAMENTO AUTOMÁTICO COM PRIORIDADE DE NÍVEL
 
       // Peso para cards novos do nível atual (prioridade máxima)
-      const pesoNivelAtual = cardsNovosNivelAtual.length * 2; // dobro do peso
-
-      // Peso para cards novos de outros níveis (menor prioridade)
-      const pesoOutrosNiveis = cardsNovosOutrosNiveis.length * 0.5; // metade do peso
+      const pesoNivelAtual = cardsNovosNivelAtual.length
 
       // Peso para revisões
       const pesoCardsRevisao = cardsRevisao.length * this.config.pesoRevisao;
 
       // Peso total para sorteio
-      const pesoTotal = pesoNivelAtual + pesoOutrosNiveis + pesoCardsRevisao;
+      const pesoTotal = pesoNivelAtual + pesoCardsRevisao;
 
       // Sorteia um número entre 0 e o peso total
       const sorteio = Math.random() * pesoTotal;
