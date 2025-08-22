@@ -27,7 +27,7 @@ export const ORDEM_NIVEIS: NivelDificuldade[] = [
   "dificil",
 ];
 
-export const useDeckStore = defineStore("deck", {
+export const useDeckStore = (deckId: string) => defineStore(`deck-${deckId}`, {
   state: () => ({
     globalCounter: 0,
     currentLevel: "facil" as NivelDificuldade,
@@ -123,7 +123,7 @@ export const useDeckStore = defineStore("deck", {
   },
 
   actions: {
-    async initDB(dbName = "deckDB", dbVersion = 1) {
+    async initDB(dbName = `deckdb-${deckId}`, dbVersion = 1) {
       const db = await openDB(dbName, dbVersion, {
         upgrade(db) {
           db.createObjectStore("state");
