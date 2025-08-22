@@ -188,7 +188,7 @@ app/
 │   └── decks.ts        # Store Pinia para gerenciamento de decks e progresso
 │
 └── utils/
-    └── apiGbif.ts     # Utilitários para API do GBIF (nome histórico)
+    └── apiEspecies.ts # Utilitários para APIs externas (GBIF, iNaturalist)
 ```
 
 ### Como Executar o Projeto
