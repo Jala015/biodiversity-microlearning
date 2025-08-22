@@ -5,7 +5,7 @@ interface CardData {
     commonName: string
     taxonomy: { class: '', order: '', family: '' }
     description: string
-    photos:  { url: str, caption: str }[]
+    photos: { url: str, caption: str }[]
 }
 
 export interface CardWithData extends Card {
@@ -17,7 +17,21 @@ export interface Deck {
     id: string
     title: string
     cards: Record<string, CardWithData>,
-    source: 'curated'|'generated' // curated or auto-generated
+    source: 'curated' | 'generated' // curated or auto-generated
     description?: string,
     favorite?: boolean // se o deck é favorito
+}
+
+import type LocalForage from 'localforage';
+
+declare module '#app' {
+    interface NuxtApp {
+        $localForage: LocalForage;
+    }
+}
+
+declare module 'vue' {
+    interface ComponentCustomProperties {
+        $localForage: LocalForage;
+    }
 }

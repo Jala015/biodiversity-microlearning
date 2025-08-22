@@ -76,7 +76,7 @@ flowchart TD
     L --> M{Avaliar Resposta}
 
     M -->|Acertou| N[⏰ Cooldown Longo]
-    
+
     M -->|Errou| P[⏰ Cooldown Curto]
 
     N --> Q[🕐 Fila de Cooldown]
@@ -167,6 +167,8 @@ app/
 ├── components/
 │   ├── deck/
 │   │   └── List.vue    # Listagem dos decks salvos
+│   │   └── CachedImage.vue # Exibição de imagens comprimidas em cache local (indexedDB via localForage)
+│
 │   ├── gerador/
 │   │   └── Mapa.vue    # Mapa para seleção geográfica (API GBIF)
 │   └── menus/
@@ -186,7 +188,7 @@ app/
 │   └── decks.ts        # Store Pinia para gerenciamento de decks e progresso
 │
 └── utils/
-    └── api_inat.ts     # Utilitários para API do GBIF (nome histórico)
+    └── apiGbif.ts     # Utilitários para API do GBIF (nome histórico)
 ```
 
 ### Como Executar o Projeto
