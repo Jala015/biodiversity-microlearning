@@ -1,11 +1,27 @@
 <script setup>
+import { ref } from "vue";
+import { useDeckStore } from "~/stores/deck";
+import { criarDeckAutomatico } from "~/utils/api";
+import { customAlphabet } from "nanoid/non-secure";
+
+const nanoid = customAlphabet("1234567890abcdef", 11);
+
+let deck_id = ref(null);
+
+onMounted(() => {
+    deck_id.value = nanoid();
+});
+
 const circuloGeoJson = ref(null);
 function handleCircle(geojson) {
     circuloGeoJson.value = geojson; // Armazena o GeoJSON do círculo
 }
 
-function montarDeck(circulo) {
-    return; //TODO
+async function montarDeck(circulo) {
+    const deck = await criarDeckAutomatico(circulo, 20);
+    // deck.cards é um Array<Card> pronto para uso
+    const deckStore = useDeckStore(deck_id.value);
+    await deckStore.addCards(deck.cards); // ✅ Direto!
 }
 </script>
 

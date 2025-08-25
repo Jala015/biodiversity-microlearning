@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   obterEspeciesMaisComuns,
   montarDetalhesDasEspecies,
-} from "../../app/utils/apiEspecies";
+} from "../../app/utils/api";
 
 const circulo = {
   type: "Feature",
@@ -93,9 +93,9 @@ describe("API iNat", () => {
 
     const result = await obterEspeciesMaisComuns(opcoes);
 
-    expect(result.speciesKeys).toBeDefined();
+    expect(result.nomes_cientificos).toBeDefined();
     expect(result.speciesCounts).toBeInstanceOf(Map);
-    expect(result.speciesKeys.length).toBeLessThanOrEqual(
+    expect(result.nomes_cientificos.length).toBeLessThanOrEqual(
       opcoes.maxSpecies * 2,
     );
   });

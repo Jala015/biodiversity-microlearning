@@ -2,11 +2,7 @@
 import { defineStore } from "pinia";
 import { openDB, type IDBPDatabase } from "idb";
 import { debounce } from "lodash";
-
-interface Especie {
-  nome_cientifico: string;
-  nome_popular?: string;
-}
+import type { Especie } from "~/utils/api/types";
 
 export interface Card {
   id: string;
