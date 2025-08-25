@@ -1,27 +1,126 @@
 // Importar a função do Redis
 import { obterImagemCurada } from "~/utils/redisImageCache";
 
-// Função para buscar o nome popular em português
-interface GbifVernacularName {
-  vernacularName: string;
-  language: string;
+// tipos
+export interface INatTaxaResponse {
+  total_results: number;
+  page: number;
+  per_page: number;
+  results: INatTaxon[];
 }
 
-// Helper functions
-async function nomePopularEmPortugues(
-  speciesKey: string,
-): Promise<string | undefined> {
+export interface INatTaxon {
+  id: number;
+  rank: string;
+  rank_level: number;
+  iconic_taxon_id: number;
+  ancestor_ids: number[];
+  is_active: boolean;
+  name: string;
+  parent_id: number;
+  ancestry: string;
+  extinct: boolean;
+  default_photo?: INatPhoto;
+  taxon_changes_count: number;
+  taxon_schemes_count: number;
+  observations_count: number;
+  flag_counts: {
+    resolved: number;
+    unresolved: number;
+  };
+  current_synonymous_taxon_ids: number[] | null;
+  atlas_id: number | null;
+  complete_species_count: number | null;
+  wikipedia_url: string | null;
+  complete_rank: string;
+  matched_term: string;
+  iconic_taxon_name: string;
+  preferred_common_name?: string;
+  english_common_name?: string;
+}
+
+export interface INatPhoto {
+  id: number;
+  license_code: string | null;
+  attribution: string;
+  attribution_name: string;
+  url: string;
+  square_url: string;
+  medium_url: string;
+  original_dimensions: {
+    height: number;
+    width: number;
+  };
+  flags: any[];
+}
+
+interface MediaEspecie {
+  identifier: string;
+  type: string;
+  license: string;
+  rightsHolder: string;
+}
+
+interface EspecieComDados {
+  speciesKey: string;
+  nome_cientifico: string;
+  contagemOcorrencias?: number; // opcional, usado para contar ocorrências na região
+  nome_popular?: string;
+  media?: MediaEspecie[];
+}
+
+//funções helper
+
+export async function consultarApiINat(scientificName: string): Promise<{
+  inatId: number;
+  foto: MediaEspecie | undefined;
+  nomePopularPt: string | undefined;
+  nome_cientifico: string;
+} | null> {
   try {
-    const url = `https://api.gbif.org/v1/species/${speciesKey}/vernacularNames`;
-    const response = await $fetch<{ results: GbifVernacularName[] }>(url);
-    const portugueseName = response.results.find((n) => n.language === "por");
-    return portugueseName?.vernacularName;
+    // 1. Buscar no iNaturalist
+    const inatUrl = `https://api.inaturalist.org/v1/taxa?q=${encodeURIComponent(
+      scientificName,
+    )}&locale=pt-BR`;
+    const inatResp = await $fetch<INatTaxaResponse>(inatUrl);
+
+    if (!inatResp.results || inatResp.results.length === 0) {
+      console.warn(`Nenhum resultado iNat para ${scientificName}`);
+      return null;
+    }
+
+    const taxon = inatResp.results[0];
+
+    if (!taxon) {
+      console.warn(`Taxon não encontrado para ${scientificName}`);
+      return null;
+    }
+
+    //2. Nome cientifico
+    const nome_cientifico = taxon.name;
+
+    // 3. Nome popular em pt
+    let nomePopularPt: string | undefined = taxon.preferred_common_name;
+
+    // 4. Foto com licença válida
+    let foto: MediaEspecie | undefined = taxon.default_photo
+      ? {
+          identifier: taxon.default_photo.medium_url,
+          type: "StillImage",
+          license: taxon.default_photo.license_code!,
+          rightsHolder: taxon.default_photo.attribution,
+        }
+      : undefined;
+
+    return {
+      inatId: taxon.id,
+      nome_cientifico,
+      nomePopularPt,
+      foto,
+    };
   } catch (error) {
-    console.error(
-      `Erro ao buscar nome vernacular para speciesKey ${speciesKey}:`,
-      error,
-    );
-    return undefined;
+    console.error(`❌ Erro ao unificar espécie ${scientificName}:`, error);
+    return null;
   }
 }
 
@@ -32,83 +131,6 @@ function turfToWkt(polygon: any): string {
   return `POLYGON((${coordinates}))`;
 }
 
-// Interface para mídia de espécies
-interface MediaEspecie {
-  identifier: string;
-  type: string;
-  license: string;
-  rightsHolder: string;
-}
-
-// Função para buscar dados de espécie no iNaturalist
-interface INatTaxonResponse {
-  results: {
-    id: number;
-    name: string;
-    preferred_common_name?: string;
-    taxon_photos: {
-      photo: {
-        id: number;
-        license_code: string | null;
-        attribution: string;
-        medium_url: string;
-        large_url: string;
-        original_url: string;
-      };
-    }[];
-  }[];
-}
-
-// Função auxiliar para buscar nome científico
-async function buscarNomeCientifico(speciesKey: string): Promise<string> {
-  const speciesInfo = await $fetch<{ scientificName: string }>(
-    `https://api.gbif.org/v1/species/${speciesKey}`,
-  );
-  return speciesInfo.scientificName;
-}
-
-async function buscarDadosINaturalist(
-  speciesKey: string,
-): Promise<{ foto?: MediaEspecie; nomePopular?: string } | null> {
-  try {
-    const url = `https://api.inaturalist.org/v1/taxa/${speciesKey}`;
-    const response = await $fetch<INatTaxonResponse>(url);
-
-    if (!response.results || response.results.length === 0) {
-      return null;
-    }
-
-    const taxon = response.results[0];
-    let primeiraFotoComLicenca: MediaEspecie | null = null;
-
-    // Procurar a primeira foto com license_code não nulo
-    if (taxon?.taxon_photos && taxon.taxon_photos.length > 0) {
-      for (const taxonPhoto of taxon.taxon_photos) {
-        if (taxonPhoto.photo.license_code) {
-          primeiraFotoComLicenca = {
-            identifier: taxonPhoto.photo.medium_url,
-            type: "StillImage",
-            license: taxonPhoto.photo.license_code,
-            rightsHolder: taxonPhoto.photo.attribution,
-          };
-          break;
-        }
-      }
-    }
-
-    return {
-      foto: primeiraFotoComLicenca || undefined,
-      nomePopular: taxon?.preferred_common_name,
-    };
-  } catch (error) {
-    console.error(
-      `❌ Erro ao buscar dados iNaturalist para ${speciesKey}:`,
-      error,
-    );
-    return null;
-  }
-}
-
 // funções para montar o deck
 
 // obter espécies mais comuns na região
@@ -117,13 +139,14 @@ interface SearchOptions {
   maxSpecies: number; // Número máximo de espécies (padrão: 10)
   taxonId?: number; // ID do grupo taxonômico (padrão: 3 = Aves)
 }
-export async function obterEspeciesMaisComuns(
-  opcoes: SearchOptions,
-): Promise<{ speciesKeys: string[]; speciesCounts: Map<string, number> }> {
+export async function obterEspeciesMaisComuns(opcoes: SearchOptions): Promise<{
+  nomes_cientificos: string[];
+  speciesCounts: Map<string, number>;
+}> {
   const geomWkt = turfToWkt(opcoes.geomCircle);
   const params = new URLSearchParams({
     geometry: geomWkt,
-    facet: "speciesKey",
+    facet: "scientificName",
     limit: "0", // Usar '0' para obter apenas os facetas
     datasetKey: "50c9509d-22c7-4a22-a47d-8c48425ef4a7", //iNat research grade
   });
@@ -141,7 +164,7 @@ export async function obterEspeciesMaisComuns(
     },
   });
 
-  const speciesKeys =
+  const nomes_cientificos =
     response.facets?.[0]?.counts
       .map((c) => c.name)
       .slice(0, opcoes.maxSpecies * 2) || []; // Buscar o dobro para filtrar depois (pode ser que algumas espécies só tenham registros com problemas)
@@ -151,275 +174,85 @@ export async function obterEspeciesMaisComuns(
   response.facets?.[0]?.counts.forEach((count) => {
     speciesCounts.set(count.name, count.count);
   });
-  console.log(`📊 ${speciesKeys.length} espécies encontradas na região`);
+  console.log(`📊 ${nomes_cientificos.length} espécies encontradas na região`);
 
-  return { speciesKeys, speciesCounts };
-}
-
-// obtem mídia e nome popular das espécies, filtrando para fora as que não tem midia
-interface GbifOccurrence {
-  speciesKey?: number;
-  scientificName: string;
-  media?: {
-    identifier: string;
-    type: string;
-    license: string;
-    rightsHolder: string;
-  }[];
-}
-interface EspecieComDados {
-  speciesKey: string;
-  nome_cientifico: string;
-  contagemOcorrencias?: number; // opcional, usado para contar ocorrências na região
-  nome_popular?: string;
-  media?: MediaEspecie[];
+  return { nomes_cientificos, speciesCounts };
 }
 
 export async function montarDetalhesDasEspecies(
-  speciesKeys: string[],
+  scientificNames: string[],
   maxSpecies: number,
   counts: Map<string, number>,
 ): Promise<Map<string, EspecieComDados>> {
-  console.log(`🔍 Processando ${speciesKeys.length} espécies...`);
+  console.log(`🔍 Processando ${scientificNames.length} espécies...`);
 
   const speciesMap = new Map<string, EspecieComDados>();
   let especiesComImagem = 0;
-  let especiesDoINaturalist = 0;
-  let especiesDoGBIF = 0;
 
-  // Primeiro: tentar buscar imagens curadas para todas as espécies
-  const especiesComImagemCurada = new Set<string>();
+  // Primeiro: buscar todos os dados no iNaturalist
+  console.log(`🔍 Buscando dados no iNaturalist...`);
+  const dadosINat = new Map<
+    string,
+    {
+      inatId: number;
+      foto: MediaEspecie | undefined;
+      nomePopularPt: string | undefined;
+      nome_cientifico: string;
+    }
+  >();
 
-  console.log(`🎨 Verificando imagens curadas no Redis...`);
-  for (const speciesKey of speciesKeys.slice(0, maxSpecies * 2)) {
+  // Buscar dados do iNaturalist para todas as espécies usando GBIF species name
+  for (const n of scientificNames.slice(0, maxSpecies * 3)) {
     try {
-      const imagemCurada = await obterImagemCurada(speciesKey);
-
-      if (imagemCurada) {
-        especiesComImagemCurada.add(speciesKey);
-
-        // Buscar nome popular e científico
-        const nomePopular = await nomePopularEmPortugues(speciesKey);
-        const count = counts.get(speciesKey) || 0;
-        const nomeCientifico = await buscarNomeCientifico(speciesKey);
-
-        speciesMap.set(speciesKey, {
-          speciesKey,
-          nome_cientifico: nomeCientifico,
-          nome_popular: nomePopular,
-          media: [
-            {
-              identifier: imagemCurada,
-              type: "StillImage",
-              license: "Curada",
-              rightsHolder: "Curadoria",
-            } as MediaEspecie,
-          ],
-          contagemOcorrencias: count,
-        });
-
-        especiesComImagem++;
-        console.log(`✓ Imagem curada encontrada para ${nomeCientifico}`);
-
-        // Parar se já temos espécies suficientes
-        if (especiesComImagem >= maxSpecies) {
-          console.log(
-            `✓ ${especiesComImagem} espécies com imagens curadas coletadas`,
-          );
-          return speciesMap;
-        }
+      const resultadoINat = await consultarApiINat(n);
+      if (resultadoINat) {
+        dadosINat.set(n, resultadoINat);
       }
     } catch (error) {
-      console.error(
-        `❌ Erro ao processar imagem curada para ${speciesKey}:`,
-        error,
-      );
+      console.error(`❌ Erro ao buscar dados iNaturalist para ${n}:`, error);
       continue;
     }
   }
 
-  console.log(
-    `🎨 ${especiesComImagemCurada.size} espécies com imagens curadas encontradas`,
-  );
+  console.log(`📊 ${dadosINat.size} espécies encontradas no iNaturalist`);
 
-  // Se ainda precisamos de mais espécies, tentar iNaturalist antes do GBIF
-  const especiesRestantes = maxSpecies - especiesComImagem;
-  if (especiesRestantes > 0) {
-    console.log(
-      `🔍 Tentando iNaturalist para ${especiesRestantes} espécies adicionais...`,
-    );
+  // Segundo: para cada espécie com dados do iNaturalist, verificar se tem imagem curada
+  for (const [speciesKey, dados] of dadosINat) {
+    if (especiesComImagem >= maxSpecies) break;
 
-    // Filtrar espécies que ainda não temos
-    const speciesKeysRestantes = speciesKeys.filter(
-      (key) => !especiesComImagemCurada.has(key),
-    );
+    if (dados.foto) {
+      const count = counts.get(speciesKey) || 0;
 
-    // Buscar mais espécies para ter opções, já que algumas podem não ter fotos válidas
-    for (const speciesKey of speciesKeysRestantes.slice(
-      0,
-      especiesRestantes * 2,
-    )) {
-      if (especiesComImagem >= maxSpecies) break;
+      // Verificar se existe imagem curada
+      let mediaFinal: MediaEspecie = dados.foto;
+      let fonteImagem = "iNaturalist";
 
-      try {
-        const dadosINat = await buscarDadosINaturalist(speciesKey);
-
-        if (dadosINat && dadosINat.foto) {
-          const count = counts.get(speciesKey) || 0;
-          const nomeCientifico = await buscarNomeCientifico(speciesKey);
-
-          // Usar nome popular do iNaturalist se disponível, senão buscar no GBIF
-          const nomePopular =
-            dadosINat.nomePopular || (await nomePopularEmPortugues(speciesKey));
-
-          speciesMap.set(speciesKey, {
-            speciesKey,
-            nome_cientifico: nomeCientifico,
-            nome_popular: nomePopular,
-            media: [dadosINat.foto],
-            contagemOcorrencias: count,
-          });
-
-          especiesComImagem++;
-          especiesDoINaturalist++;
-          console.log(
-            `✓ Imagem iNaturalist encontrada para ${nomeCientifico} (${nomePopular || "sem nome popular"})`,
-          );
-        }
-      } catch (error) {
-        console.error(
-          `❌ Erro ao processar iNaturalist para ${speciesKey}:`,
-          error,
-        );
-        continue;
+      const imagemCurada = await obterImagemCurada(speciesKey);
+      if (imagemCurada) {
+        mediaFinal = {
+          identifier: imagemCurada,
+          type: "StillImage",
+          license: "Curada",
+          rightsHolder: "Curadoria",
+        };
+        fonteImagem = "curada";
       }
-    }
 
-    console.log(
-      `🔍 ${especiesDoINaturalist} espécies adicionais do iNaturalist encontradas`,
-    );
-  }
+      speciesMap.set(speciesKey, {
+        speciesKey,
+        nome_cientifico: dados.nome_cientifico,
+        nome_popular: dados.nomePopularPt,
+        media: [mediaFinal],
+        contagemOcorrencias: count,
+      });
 
-  // Se ainda precisamos de mais espécies, buscar no GBIF como último recurso
-  const especiesAindaRestantes = maxSpecies - especiesComImagem;
-  if (especiesAindaRestantes > 0) {
-    console.log(
-      `📷 Buscando ${especiesAindaRestantes} espécies adicionais no GBIF...`,
-    );
-
-    // Filtrar espécies que ainda não temos
-    const speciesKeysRestantes = speciesKeys.filter(
-      (key) => !speciesMap.has(key),
-    );
-
-    const params = new URLSearchParams({
-      mediaType: "StillImage",
-      limit: (especiesAindaRestantes * 3).toString(), // Buscar mais para ter opções de mídia
-    });
-
-    // Processar em lotes para evitar URLs muito longas
-    const batchSize = 10;
-    const allOccurrences: GbifOccurrence[] = [];
-
-    for (
-      let i = 0;
-      i < speciesKeysRestantes.length && especiesComImagem < maxSpecies;
-      i += batchSize
-    ) {
-      const batch = speciesKeysRestantes.slice(i, i + batchSize);
-      const batchParams = new URLSearchParams(params);
-      batch.forEach((key) => batchParams.append("speciesKey", key));
-
-      const url = `https://api.gbif.org/v1/occurrence/search?${batchParams.toString()}`;
-
-      try {
-        const response = await $fetch<{
-          results: GbifOccurrence[];
-        }>(url);
-
-        console.log(
-          `📦 Lote GBIF ${Math.floor(i / batchSize) + 1}: ${response.results.length} ocorrências encontradas`,
-        );
-        allOccurrences.push(...response.results);
-
-        // Parar se já temos espécies suficientes com mídia
-        const uniqueWithMedia = new Set(
-          allOccurrences
-            .filter((occ) => occ.speciesKey && occ.media?.length)
-            .map((occ) => occ.speciesKey!.toString()),
-        );
-
-        if (especiesComImagem + uniqueWithMedia.size >= maxSpecies) {
-          console.log(`✓ Coletadas espécies suficientes, parando busca GBIF`);
-          break;
-        }
-      } catch (error) {
-        console.error(
-          `❌ Erro ao buscar lote GBIF ${Math.floor(i / batchSize) + 1}:`,
-          error,
-        );
-        continue;
-      }
-    }
-
-    // Processar ocorrências do GBIF
-    const groupedBySpecies = new Map<string, GbifOccurrence[]>();
-    allOccurrences.forEach((occ) => {
-      if (!occ.speciesKey) return;
-      const key = occ.speciesKey.toString();
-      if (!groupedBySpecies.has(key)) {
-        groupedBySpecies.set(key, []);
-      }
-      groupedBySpecies.get(key)!.push(occ);
-    });
-
-    // Filtrar apenas espécies que têm mídia e ainda precisamos
-    const speciesWithMedia = Array.from(groupedBySpecies.entries())
-      .filter(([key, occurrences]) => {
-        return occurrences.some(
-          (occ) => occ.media?.length && occ.media.length > 0,
-        );
-      })
-      .slice(0, especiesAindaRestantes);
-
-    console.log(
-      `📷 ${speciesWithMedia.length} espécies do GBIF têm mídia disponível`,
-    );
-
-    for (const [key, occurrences] of speciesWithMedia) {
-      if (especiesComImagem >= maxSpecies) break;
-
-      const occWithMedia = occurrences.find(
-        (occ) => occ.media?.length && occ.media.length > 0,
+      especiesComImagem++;
+      console.log(
+        `✓ Imagem ${fonteImagem} para ${dados.nome_cientifico} (${dados.nomePopularPt || "sem nome popular"})`,
       );
-      if (!occWithMedia) continue;
-
-      try {
-        const nomePopular = await nomePopularEmPortugues(key);
-        const count = counts.get(key) || 0;
-
-        speciesMap.set(key, {
-          speciesKey: key,
-          nome_cientifico: occWithMedia.scientificName,
-          nome_popular: nomePopular,
-          media: occWithMedia.media || [],
-          contagemOcorrencias: count,
-        });
-
-        especiesComImagem++;
-        especiesDoGBIF++;
-        console.log(
-          `✓ Processada espécie GBIF: ${occWithMedia.scientificName} (${nomePopular || "sem nome popular"})`,
-        );
-      } catch (error) {
-        console.error(`❌ Erro ao processar espécie GBIF ${key}:`, error);
-        continue;
-      }
     }
   }
 
-  console.log(
-    `✅ Total: ${especiesComImagem} espécies processadas (${especiesComImagemCurada.size} curadas + ${especiesDoINaturalist} iNaturalist + ${especiesDoGBIF} GBIF)`,
-  );
+  console.log(`✅ Total: ${especiesComImagem} espécies processadas`);
   return speciesMap;
 }

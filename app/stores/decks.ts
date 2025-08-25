@@ -6,7 +6,7 @@ import { debounce } from "lodash";
 export interface Card {
   id: string;
   taxon: string;
-  nivel: "facil" | "medio" | "medio-avancado" | "dificil";
+  nivel: "facil" | "medio" | "dificil" | "desafio";
   cooldown: number;
   lastSeenAt: number;
 }
@@ -23,13 +23,13 @@ export interface DeckConfig {
   favorite?: boolean;
 }
 
-export type NivelDificuldade = "facil" | "medio" | "medio-avancado" | "dificil";
+export type NivelDificuldade = "facil" | "medio" | "dificil" | "desafio";
 
 export const ORDEM_NIVEIS: NivelDificuldade[] = [
   "facil",
   "medio",
-  "medio-avancado",
   "dificil",
+  "desafio",
 ];
 
 export const deck_list = defineStore("lista-decks", {
@@ -126,8 +126,8 @@ export const useDeckStore = (deckId: string) =>
         > = {
           facil: { novos: 0, revisao: 0, cooldown: 0 },
           medio: { novos: 0, revisao: 0, cooldown: 0 },
-          "medio-avancado": { novos: 0, revisao: 0, cooldown: 0 },
           dificil: { novos: 0, revisao: 0, cooldown: 0 },
+          desafio: { novos: 0, revisao: 0, cooldown: 0 },
         };
 
         state.levelsQueue.forEach((card) => distribution[card.nivel].novos++);
@@ -317,6 +317,7 @@ export const useDeckStore = (deckId: string) =>
         }
       },
 
+      // Adiciona cards ao deck
       addCards(cards: Card[] | Card) {
         if (!Array.isArray(cards)) {
           cards = [cards];
