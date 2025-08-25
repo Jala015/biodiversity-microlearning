@@ -1,0 +1,102 @@
+<script setup>
+import { ref, computed } from "vue";
+
+const selectedIds = ref([]);
+
+const grupos = ref([
+    { nome: "Animais", gbifId: 1, nivel: 1 },
+    { nome: "Vertebrados", gbifId: 44, nivel: 2 },
+    { nome: "Aves", gbifId: 212, incluido_por: [1, 44], nivel: 3 },
+    { nome: "Mamíferos", gbifId: 359, incluido_por: [1, 44], nivel: 3 },
+    { nome: "Répteis", gbifId: 358, incluido_por: [1, 44], nivel: 3 },
+    { nome: "Anfíbios", gbifId: 131, incluido_por: [1, 44], nivel: 3 },
+    { nome: "Moluscos", gbifId: 52, incluido_por: [1], nivel: 2 },
+    { nome: "Artrópodes", gbifId: 54, incluido_por: [1], nivel: 2 },
+    {
+        nome: "Crustáceos (Malacostraca)",
+        gbifId: 229,
+        incluido_por: [1, 54],
+        nivel: 3,
+    },
+    { nome: "Aracnídeos", gbifId: 367, incluido_por: [1, 54], nivel: 3 },
+    { nome: "Insetos", gbifId: 216, incluido_por: [1, 54], nivel: 3 },
+    { nome: "Besouros", gbifId: 1470, incluido_por: [1, 54, 216], nivel: 4 },
+    { nome: "Borboletas", gbifId: 797, incluido_por: [1, 54, 216], nivel: 4 },
+    { nome: "Plantas", gbifId: 6, nivel: 1 },
+    { nome: "Fungos", gbifId: 5, nivel: 1 },
+]);
+
+// Computed para verificar se um grupo deve estar desabilitado
+const isGrupoDesabilitado = (grupo) => {
+    if (!grupo.incluido_por) return false;
+    // Desabilita se algum grupo pai está selecionado
+    return grupo.incluido_por.some((paiId) =>
+        selectedIds.value.includes(paiId),
+    );
+};
+
+// Verifica se um grupo pai tem filhos selecionados
+const temFilhosSelecionados = (grupoPai) => {
+    return grupos.value.some(
+        (grupo) =>
+            grupo.incluido_por &&
+            grupo.incluido_por.includes(grupoPai.gbifId) &&
+            selectedIds.value.includes(grupo.gbifId),
+    );
+};
+
+// Computed para IDs filtrados (remove filhos que têm pais selecionados)
+const selectedIdsFiltrados = computed(() => {
+    return selectedIds.value.filter((id) => {
+        const grupo = grupos.value.find((g) => g.gbifId === id);
+        // Se não tem incluido_por, mantém
+        if (!grupo?.incluido_por) return true;
+        // Remove se algum pai está selecionado
+        return !grupo.incluido_por.some((paiId) =>
+            selectedIds.value.includes(paiId),
+        );
+    });
+});
+
+// Expõe a lista de IDs filtrados para o componente pai
+defineExpose({
+    taxonKeys: selectedIdsFiltrados,
+});
+</script>
+
+<template>
+    <h2 class="mb-0">Filtrar grupos</h2>
+    <p class="italic">Deixe em branco para incluir todos os seres vivos</p>
+    <ul class="list divide-y divide-base-content/10">
+        <label
+            class="label mx-2 py-2"
+            v-for="grupo in grupos"
+            :key="grupo.gbifId"
+            :class="{
+                'text-success/50': isGrupoDesabilitado(grupo),
+                'text-success': selectedIds.includes(grupo.gbifId),
+            }"
+            :style="{ paddingLeft: `${grupo.nivel * 2}rem` }"
+        >
+            <input
+                type="checkbox"
+                class="checkbox checkbox-sm"
+                :value="grupo.gbifId"
+                v-model="selectedIds"
+                :class="{
+                    'checkbox-success': isGrupoDesabilitado(grupo),
+                    'checkbox-warning':
+                        !selectedIds.includes(grupo.gbifId) &&
+                        temFilhosSelecionados(grupo),
+                    'checkbox-error':
+                        !isGrupoDesabilitado(grupo) &&
+                        !temFilhosSelecionados(grupo) &&
+                        selectedIdsFiltrados.length > 0 &&
+                        !selectedIds.includes(grupo.gbifId),
+                }"
+                :disabled="isGrupoDesabilitado(grupo)"
+            />
+            {{ grupo.nome }}
+        </label>
+    </ul>
+</template>

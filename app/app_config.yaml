@@ -1,4 +1,4 @@
-app_name: Fauna Microlearning
+app_name: Microlearning de Biodiversidade
 
 spaced_repetition:
   use_fuzz: true #slight random variation in review intervals to avoid review clustering
