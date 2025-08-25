@@ -6,16 +6,29 @@ export async function obterImagemCurada(
   speciesKey: string,
 ): Promise<string | null> {
   try {
-    const response = await $fetch<UpstashResponse<string | null>>(
+    const { data: response, error } = await useFetch<
+      UpstashResponse<string | null>
+    >(
       `${process.env.UPSTASH_REDIS_REST_URL}/get/species:imagem:${speciesKey}`,
       {
+        key: `redis-imagem-${speciesKey}`,
+        server: false,
+        default: () => ({ result: null }),
         headers: {
           Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}`,
         },
       },
     );
 
-    return response.result;
+    if (error.value) {
+      console.error(
+        `❌ Erro ao obter imagem curada para ${speciesKey}:`,
+        error.value,
+      );
+      return null;
+    }
+
+    return response.value?.result || null;
   } catch (error) {
     console.error(`Erro ao buscar imagem curada para ${speciesKey}:`, error);
     return null;
@@ -26,16 +39,26 @@ export async function obterImagemCurada(
 export async function obterMaxIdLevel(inatId: number): Promise<string> {
   try {
     const redisKey = `species:taxonomiclevel:${inatId}`;
-    const response = await $fetch<UpstashResponse<string | null>>(
-      `${process.env.UPSTASH_REDIS_REST_URL}/get/${redisKey}`,
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}`,
-        },
+    const { data: response, error } = await useFetch<
+      UpstashResponse<string | null>
+    >(`${process.env.UPSTASH_REDIS_REST_URL}/get/${redisKey}`, {
+      key: `redis-maxid-${inatId}`,
+      server: false,
+      default: () => ({ result: "species" }),
+      headers: {
+        Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}`,
       },
-    );
+    });
 
-    return response.result || "";
+    if (error.value) {
+      console.error(
+        `❌ Erro ao obter max_id_level para ${inatId}:`,
+        error.value,
+      );
+      return "species";
+    }
+
+    return response.value?.result || "species";
   } catch (error) {
     return "";
   }
@@ -50,15 +73,26 @@ export async function obterAlternativasPreDefinidas(
 }> | null> {
   try {
     const redisKey = `especies:alternativas:${inatId}`;
-    const response = await $fetch<
+    const { data: response, error } = await useFetch<
       UpstashResponse<Record<string, string> | null>
     >(`${process.env.UPSTASH_REDIS_REST_URL}/hgetall/${redisKey}`, {
+      key: `redis-alternativas-${inatId}`,
+      server: false,
+      default: () => ({ result: null }),
       headers: {
         Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}`,
       },
     });
 
-    if (!response.result) {
+    if (error.value) {
+      console.error(
+        `❌ Erro ao obter alternativas pré-definidas para ${inatId}:`,
+        error.value,
+      );
+      return [];
+    }
+
+    if (!response.value?.result) {
       return null;
     }
 
@@ -91,14 +125,23 @@ export async function obterAlternativasPreDefinidas(
 // Função auxiliar para testar a conexão
 export async function verificarConexaoRedis(): Promise<boolean> {
   try {
-    await $fetch<UpstashResponse<string>>(
+    const { error } = await useFetch<UpstashResponse<string>>(
       `${process.env.UPSTASH_REDIS_REST_URL}/ping`,
       {
+        key: "redis-ping-check",
+        server: false,
+        default: () => ({ result: "PONG" }),
         headers: {
           Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}`,
         },
       },
     );
+
+    if (error.value) {
+      console.error("❌ Erro ao verificar conexão Redis:", error.value);
+      return false;
+    }
+
     return true;
   } catch {
     return false;

@@ -6,12 +6,7 @@ Uma plataforma de microlearning gamificada para aprender sobre biodiversidade lo
 
 ### 🎮 Como Funciona?
 
-Você estuda espécies de animais através de **flashcards organizados por níveis de dificuldade**:
-
-- **🟢 Fáceis**: Espécies comuns, perguntadas em níveis taxonômicos altos (ex.: ordem, família)
-- **🟡 Médios**: Espécies comuns, mas em níveis taxonômicos mais específicos (ex.: gênero, espécie)
-- **🟠 Médios Avançados**: Mistura de espécies comuns (gênero/espécie) e espécies incomuns em níveis mais altos (ordem/família)
-- **🔴 Difíceis**: Espécies incomuns, perguntadas em nível de gênero ou espécie
+Você estuda espécies de animais através de **flashcards organizados por níveis de dificuldade**, que vão de fácil a desafio. O nível é determinado considerando a frequência relativa do táxon dentre as observações, o número absoluto de observações do táxon e o nível taxonômico.
 
 O sistema **automaticamente decide** quando mostrar cards novos ou revisar cards antigos, baseado no seu desempenho e em um algoritmo inteligente de repetição espaçada.
 

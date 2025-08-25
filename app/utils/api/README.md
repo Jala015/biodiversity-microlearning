@@ -41,7 +41,7 @@ Lógica para geração de alternativas incorretas em flashcards com cache Redis:
 
 ### `deck-builder.ts`
 Funções de alto nível para construção de decks:
-- `montarCardsComAlternativas()` - **NOVA** - Processa espécies e cria Cards com alternativas prontas
+- `montarCardsComAlternativas()` - **NOVA** - Processa espécies e cria Cards com alternativas prontas, agrupando por max_id_level para evitar repetições
 - `criarDeckAutomatico()` - **REFATORADA** - Pipeline completo retornando Cards prontos para `addCards()`
 - `montarDetalhesDasEspecies()` - Função de compatibilidade (interface antiga)
 
@@ -98,7 +98,9 @@ const geometriaCirculo = {
 const deck = await criarDeckAutomatico(geometriaCirculo, 20);
 console.log(`Deck criado com ${deck.totalCards} cards`);
 
-// Os cards já vêm com alternativas prontas:
+// Os cards já vêm com alternativas prontas e são agrupados por max_id_level:
+// - Se várias espécies têm max_id_level="genus", apenas 1 card é criado para o gênero
+// - O count usado na dificuldade é a soma de todas as espécies do grupo
 const deckStore = useDeckStore('meu-deck');
 await deckStore.addCards(deck.cards); // ✅ Cards prontos para uso
 ```
@@ -142,8 +144,11 @@ if (resultado) {
 3. **Epiteto específico correto + gênero errado**: Testa conhecimento de taxonomia
 4. **Grupos irmãos**: Alternativas botanicamente/zoologicamente relacionadas
 
-### Cards com Níveis Automáticos
+### Cards com Níveis Automáticos e Agrupamento Inteligente
 - **NOVA**: Determina nível de dificuldade baseado no `max_id_level` do Redis
+- **NOVA**: Agrupa espécies pelo mesmo `max_id_level` para evitar cards repetidos
+  - Ex: Se *Turdus leucomelas* e *Turdus rufiventris* têm `max_id_level = "genus"`, cria apenas 1 card para "Turdus"
+  - Soma os counts de todas as espécies do grupo para calcular dificuldade corretamente
 - `species` → `facil`, `genus` → `medio`, `family` → `dificil`, outros → `desafio`
 - Cooldown inicial baseado no nível de dificuldade
 

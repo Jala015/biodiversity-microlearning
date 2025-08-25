@@ -41,25 +41,43 @@ export async function obterEspeciesMaisComuns(opcoes: SearchOptions): Promise<{
 
   const url = `https://api.gbif.org/v1/occurrence/search?${params.toString()}`;
 
-  // realizar a requisição
-  const response = await $fetch<GBIFResponse>(url, {
-    headers: {
-      "Cache-Control": "max-age=3600",
-    },
-  });
+  try {
+    // Usar useFetch com URL direta do GBIF (Vercel rewrites vai fazer o proxy)
+    const { data: response, error } = await useFetch<GBIFResponse>(url, {
+      key: `gbif-${btoa(url).slice(0, 10)}`, // Cache key único baseado na URL
+      server: false, // Force client-side apenas (importante para client-only apps)
+      default: () => ({ facets: [] }),
+      headers: {
+        "Cache-Control": "max-age=3600",
+      },
+    });
 
-  const nomes_cientificos =
-    response.facets?.[0]?.counts
-      .map((c) => c.name)
-      .slice(0, opcoes.maxSpecies * 2) || []; // Buscar o dobro para filtrar depois (pode ser que algumas espécies só tenham registros com problemas)
+    if (error.value) {
+      console.error("❌ Erro na requisição GBIF:", error.value);
+      throw new Error(`Erro ao buscar dados do GBIF: ${error.value.message}`);
+    }
 
-  //montar um map com os respectivos counts
-  const speciesCounts = new Map<string, number>();
-  response.facets?.[0]?.counts.forEach((count) => {
-    speciesCounts.set(count.name, count.count);
-  });
+    if (!response.value) {
+      throw new Error("Resposta inválida do GBIF");
+    }
 
-  console.log(`📊 ${nomes_cientificos.length} espécies encontradas na região`);
+    const nomes_cientificos =
+      response.value.facets?.[0]?.counts
+        .map((c) => c.name)
+        .slice(0, opcoes.maxSpecies * 2) || []; // Buscar o dobro para filtrar depois
 
-  return { nomes_cientificos, speciesCounts };
+    // Montar um map com os respectivos counts
+    const speciesCounts = new Map<string, number>();
+    response.value.facets?.[0]?.counts.forEach((count) => {
+      speciesCounts.set(count.name, count.count);
+    });
+
+    console.log(
+      `📊 ${nomes_cientificos.length} espécies encontradas na região`,
+    );
+    return { nomes_cientificos, speciesCounts };
+  } catch (error) {
+    console.error("❌ Erro ao processar dados do GBIF:", error);
+    throw error;
+  }
 }

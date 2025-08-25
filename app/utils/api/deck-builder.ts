@@ -80,7 +80,6 @@ export async function montarCardsComAlternativas(
   });
 
   const cards: Card[] = [];
-  let especiesComImagem = 0;
 
   // Primeiro: buscar todos os dados no iNaturalist
   console.log(`🔍 Buscando dados no iNaturalist...`);
@@ -101,16 +100,92 @@ export async function montarCardsComAlternativas(
 
   console.log(`📊 ${dadosINat.size} espécies encontradas no iNaturalist`);
 
-  // Segundo: para cada espécie com dados do iNaturalist, verificar se tem imagem curada e gerar Card
-  for (const [speciesKey, dados] of dadosINat) {
-    if (especiesComImagem >= maxSpecies) break;
+  // Segundo: buscar max_id_level para todas as espécies
+  console.log(`🔍 Buscando max_id_level...`);
+  const speciesComMaxId = new Map<
+    string,
+    { dados: ConsultaINatResult; maxIdLevel: string }
+  >();
 
+  for (const [speciesKey, dados] of dadosINat) {
     if (dados.foto) {
-      // Verificar se existe imagem curada
-      let mediaFinal: MediaEspecie = dados.foto;
+      const max_id_level = await obterMaxIdLevel(dados.inatId);
+      speciesComMaxId.set(speciesKey, {
+        dados,
+        maxIdLevel: max_id_level || "species",
+      });
+    }
+  }
+
+  // Terceiro: agrupar espécies por táxon no nível do max_id_level
+  console.log(`📋 Agrupando espécies por max_id_level...`);
+  const gruposTaxon = new Map<
+    string,
+    {
+      especiesRepresentativa: string;
+      dados: ConsultaINatResult;
+      maxIdLevel: string;
+      countTotal: number;
+      especies: string[];
+    }
+  >();
+
+  for (const [speciesKey, { dados, maxIdLevel }] of speciesComMaxId) {
+    // Determinar o nome do táxon no nível correto
+    let taxonKey: string;
+
+    switch (maxIdLevel.toLowerCase()) {
+      case "species":
+        taxonKey = `species:${dados.nome_cientifico}`;
+        break;
+      case "genus":
+        // Extrair gênero do nome científico
+        const genero = dados.nome_cientifico.split(" ")[0];
+        taxonKey = `genus:${genero}`;
+        break;
+      case "family":
+        // Para família, usamos o próprio ID do iNat como referência
+        taxonKey = `family:${dados.taxon.parent_id || dados.inatId}`;
+        break;
+      default:
+        // Para níveis superiores, usar o próprio ID
+        taxonKey = `${maxIdLevel}:${dados.inatId}`;
+        break;
+    }
+
+    if (gruposTaxon.has(taxonKey)) {
+      // Adicionar ao grupo existente
+      const grupo = gruposTaxon.get(taxonKey)!;
+      grupo.countTotal += counts.get(speciesKey) ?? 0;
+      grupo.especies.push(speciesKey);
+    } else {
+      // Criar novo grupo
+      gruposTaxon.set(taxonKey, {
+        especiesRepresentativa: speciesKey,
+        dados: dados,
+        maxIdLevel: maxIdLevel,
+        countTotal: counts.get(speciesKey) ?? 0,
+        especies: [speciesKey],
+      });
+    }
+  }
+
+  console.log(`📊 ${gruposTaxon.size} grupos taxonômicos únicos criados`);
+
+  // Quarto: criar cards para cada grupo taxonômico
+  let cardsProcessados = 0;
+  for (const [taxonKey, grupo] of gruposTaxon) {
+    if (cardsProcessados >= maxSpecies) break;
+
+    const { especiesRepresentativa, dados, maxIdLevel, countTotal, especies } =
+      grupo;
+
+    try {
+      // Verificar se existe imagem curada para a espécie representativa
+      let mediaFinal: MediaEspecie = dados.foto!;
       let fonteImagem = "iNaturalist";
 
-      const imagemCurada = await obterImagemCurada(speciesKey);
+      const imagemCurada = await obterImagemCurada(especiesRepresentativa);
       if (imagemCurada) {
         mediaFinal = {
           identifier: imagemCurada,
@@ -121,58 +196,68 @@ export async function montarCardsComAlternativas(
         fonteImagem = "curada";
       }
 
-      // Buscar max_id_level do Redis
-      const max_id_level = await obterMaxIdLevel(dados.inatId);
+      // Determinar nível de dificuldade usando count total do grupo
+      const nivel = determinarNivelDificuldade(maxIdLevel, countTotal, total);
 
-      // Determinar nível de dificuldade
-      const nivel = determinarNivelDificuldade(
-        max_id_level,
-        counts.get(speciesKey) ?? 0,
-        total,
+      // Gerar alternativas incorretas
+      const alternativasIncorretas = await gerarAlternativasIncorretas(
+        dados.taxon,
+        dados.nomePopularPt,
+        maxIdLevel,
       );
 
-      try {
-        // Gerar alternativas incorretas
-        const alternativasIncorretas = await gerarAlternativasIncorretas(
-          dados.taxon,
-          dados.nomePopularPt,
-          max_id_level || "species",
-        );
-
-        // Criar Card
-        const card: Card = {
-          id: `${dados.inatId}-${Date.now()}`, // ID único baseado no iNat ID + timestamp
-          taxon: speciesKey, //FIXME salvar do gbif toda a taxonomia e pegar o nivel equivalente ao max
-          nivel: nivel,
-          cooldown:
-            nivel === "facil"
-              ? 1
-              : nivel === "medio"
-                ? 2
-                : nivel === "dificil"
-                  ? 3
-                  : 4,
-          lastSeenAt: 0,
-          alternativas_erradas: alternativasIncorretas,
-        };
-
-        cards.push(card);
-        especiesComImagem++;
-
-        console.log(
-          `✓ Card criado para ${dados.nome_cientifico} (${dados.nomePopularPt || "sem nome popular"}) - Nível: ${nivel}`,
-        );
-      } catch (error) {
-        console.error(
-          `❌ Erro ao gerar alternativas para ${dados.nome_cientifico}:`,
-          error,
-        );
-        continue;
+      // Determinar o nome do taxon para o card baseado no max_id_level
+      let taxonNome: string;
+      switch (maxIdLevel.toLowerCase()) {
+        case "species":
+          taxonNome = dados.nome_cientifico;
+          break;
+        case "genus":
+          taxonNome = dados.nome_cientifico.split(" ")[0] ?? "";
+          break;
+        default:
+          taxonNome = dados.nome_cientifico;
+          break;
       }
+
+      // Criar Card
+      const card: Card = {
+        id: `${dados.inatId}-${Date.now()}-${cardsProcessados}`, // ID único
+        taxon: taxonNome,
+        nivel: nivel,
+        cooldown:
+          nivel === "facil"
+            ? 1
+            : nivel === "medio"
+              ? 2
+              : nivel === "dificil"
+                ? 3
+                : 4,
+        lastSeenAt: 0,
+        alternativas_erradas: alternativasIncorretas,
+      };
+
+      cards.push(card);
+      cardsProcessados++;
+
+      const especiesInfo =
+        especies.length > 1
+          ? ` (agrupando ${especies.length} espécies: ${especies.join(", ")})`
+          : "";
+
+      console.log(
+        `✓ Card criado para ${taxonNome} (${dados.nomePopularPt || "sem nome popular"}) - Nível: ${nivel} - Count total: ${countTotal}${especiesInfo}`,
+      );
+    } catch (error) {
+      console.error(
+        `❌ Erro ao gerar alternativas para ${dados.nome_cientifico}:`,
+        error,
+      );
+      continue;
     }
   }
 
-  console.log(`✅ Total: ${especiesComImagem} cards criados`);
+  console.log(`✅ Total: ${cardsProcessados} cards criados`);
   return cards;
 }
 

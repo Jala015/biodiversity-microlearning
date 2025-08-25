@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from "vue";
-import { useDeckStore } from "~/stores/deck";
+import { useDeckStore } from "~/stores/decks";
 import { criarDeckAutomatico } from "~/utils/api";
 import { customAlphabet } from "nanoid/non-secure";
 
@@ -18,10 +18,11 @@ function handleCircle(geojson) {
 }
 
 async function montarDeck(circulo) {
+    console.log("Montando deck");
     const deck = await criarDeckAutomatico(circulo, 20);
-    // deck.cards é um Array<Card> pronto para uso
     const deckStore = useDeckStore(deck_id.value);
-    await deckStore.addCards(deck.cards); // ✅ Direto!
+    await deckStore.addCards(deck.cards);
+    console.log("Deck montado com sucesso");
 }
 </script>
 
@@ -48,6 +49,7 @@ async function montarDeck(circulo) {
         <button
             :disabled="!circuloGeoJson"
             class="btn w-full rounded-xl btn-primary btn-lg"
+            @click="montarDeck(circuloGeoJson)"
         >
             Gerar deck
         </button>
