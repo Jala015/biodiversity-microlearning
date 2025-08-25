@@ -20,7 +20,7 @@ export async function consultarApiINat(
   scientificName: string,
 ): Promise<ConsultaINatResult | null> {
   try {
-    const inatUrl = `https://api.inaturalist.org/v1/taxa?q=${encodeURIComponent(
+    const inatUrl = `/api/inaturalist/taxa?q=${encodeURIComponent(
       scientificName,
     )}&locale=pt-BR`;
     const { data: inatResp, error } = await useFetch<INatTaxaResponse>(
@@ -101,7 +101,7 @@ export async function obterTaxonsIrmaos(
   }
 
   try {
-    const inatUrl = `https://api.inaturalist.org/v1/taxa?parent_id=${correctTaxon.parent_id}&per_page=${
+    const inatUrl = `/api/inaturalist/taxa?parent_id=${correctTaxon.parent_id}&per_page=${
       count * 3
     }&is_active=true&rank_level=${correctTaxon.rank_level}&locale=pt-BR`;
     const { data: inatResp, error } = await useFetch<INatTaxaResponse>(
@@ -157,7 +157,7 @@ export async function obterEspeciesAleatorias(
 ): Promise<INatTaxon[]> {
   try {
     const randomPage = Math.floor(Math.random() * 100) + 1;
-    const inatUrl = `https://api.inaturalist.org/v1/taxa?rank=species&is_active=true&per_page=${count * 2}&page=${randomPage}&locale=pt-BR`;
+    const inatUrl = `/api/inaturalist/taxa?rank=species&is_active=true&per_page=${count * 2}&page=${randomPage}&locale=pt-BR`;
     const { data: inatResp, error } = await useFetch<INatTaxaResponse>(
       inatUrl,
       {

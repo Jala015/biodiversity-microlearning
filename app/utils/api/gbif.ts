@@ -39,7 +39,7 @@ export async function obterEspeciesMaisComuns(opcoes: SearchOptions): Promise<{
     });
   }
 
-  const url = `https://api.gbif.org/v1/occurrence/search?${params.toString()}`;
+  const url = `/api/gbif/occurrence/search?${params.toString()}`;
 
   try {
     // Usar useFetch com URL direta do GBIF (Vercel rewrites vai fazer o proxy)
