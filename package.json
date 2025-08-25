@@ -21,6 +21,7 @@
     "leaflet": "^1.9.4",
     "leaflet-draw": "^1.0.4",
     "lodash": "^4.17.21",
+    "nanoid": "^5.1.5",
     "nuxt": "^4.0.3",
     "pinia": "^3.0.3",
     "pinia-plugin-persistedstate": "^4.5.0",
