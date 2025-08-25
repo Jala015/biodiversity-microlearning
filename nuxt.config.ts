@@ -13,4 +13,5 @@ export default defineNuxtConfig({
     "pinia-plugin-persistedstate/nuxt",
     "@nuxt/test-utils/module",
   ],
+  ssr: false,
 });
