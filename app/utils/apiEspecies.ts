@@ -1,7 +1,11 @@
 // Importar a função do Redis
 import { obterImagemCurada } from "~/utils/redisImageCache";
 
-// tipos
+//----------------------------//
+//                            //
+//           tipos            //
+//                            //
+//----------------------------//
 export interface INatTaxaResponse {
   total_results: number;
   page: number;
@@ -69,7 +73,11 @@ interface EspecieComDados {
   media?: MediaEspecie[];
 }
 
-//funções helper
+//----------------------------//
+//                            //
+//     Funções auxiliares     //
+//                            //
+//----------------------------//
 
 export async function consultarApiINat(scientificName: string): Promise<{
   inatId: number;
@@ -131,7 +139,11 @@ function turfToWkt(polygon: any): string {
   return `POLYGON((${coordinates}))`;
 }
 
-// funções para montar o deck
+//----------------------------//
+//                            //
+// Funções para montar o deck //
+//                            //
+//----------------------------//
 
 // obter espécies mais comuns na região
 interface SearchOptions {
@@ -179,6 +191,7 @@ export async function obterEspeciesMaisComuns(opcoes: SearchOptions): Promise<{
   return { nomes_cientificos, speciesCounts };
 }
 
+// obter fotos, nome cientifico, nome popular
 export async function montarDetalhesDasEspecies(
   scientificNames: string[],
   maxSpecies: number,
@@ -204,10 +217,13 @@ export async function montarDetalhesDasEspecies(
   // Buscar dados do iNaturalist para todas as espécies usando GBIF species name
   for (const n of scientificNames.slice(0, maxSpecies * 3)) {
     try {
-      const resultadoINat = await consultarApiINat(n);
-      if (resultadoINat) {
-        dadosINat.set(n, resultadoINat);
-      }
+      //delay para respeitar os limites indicados pelo iNaturalist
+      setTimeout(async () => {
+        const resultadoINat = await consultarApiINat(n);
+        if (resultadoINat) {
+          dadosINat.set(n, resultadoINat);
+        }
+      }, 1000);
     } catch (error) {
       console.error(`❌ Erro ao buscar dados iNaturalist para ${n}:`, error);
       continue;
