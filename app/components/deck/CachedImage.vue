@@ -1,5 +1,5 @@
 <!--
-    Componente Vue para exibir uma imagem que é salva comprimida em cache local (indexedDB via localForage)
+    Componente Vue para exibir uma imagem que é salva comprimida em cache local (indexedDB via idb)
 -->
 <template>
     <img v-if="imageUrl" :src="imageUrl" :alt="alt" />
@@ -8,7 +8,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue";
-import { useNuxtApp } from "#app";
+import { openDB } from "idb";
 import imageCompression from "browser-image-compression";
 
 defineProps({
@@ -20,11 +20,16 @@ const props = defineProps<{ url: string; alt?: string }>();
 const imageUrl = ref<string | null>(null);
 let objectUrl: string | null = null;
 
-const { $localForage } = useNuxtApp();
+const dbPromise = openDB("image-cache", 1, {
+    upgrade(db) {
+        db.createObjectStore("images");
+    },
+});
 
 onMounted(async () => {
     try {
-        let blob = await $localForage.getItem<Blob>(props.url);
+        const db = await dbPromise;
+        let blob = await db.get("images", props.url);
 
         if (!blob) {
             const response = await fetch(props.url);
@@ -43,7 +48,7 @@ onMounted(async () => {
                 useWebWorker: true,
             });
 
-            await $localForage.setItem(props.url, blob);
+            await db.put("images", blob, props.url);
         }
 
         objectUrl = URL.createObjectURL(blob);

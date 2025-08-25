@@ -167,7 +167,7 @@ app/
 ├── components/
 │   ├── deck/
 │   │   └── List.vue    # Listagem dos decks salvos
-│   │   └── CachedImage.vue # Exibição de imagens comprimidas em cache local (indexedDB via localForage)
+│   │   └── CachedImage.vue # Exibição de imagens comprimidas em cache local (indexedDB)
 │
 │   ├── gerador/
 │   │   └── Mapa.vue    # Mapa para seleção geográfica (API GBIF)
