@@ -8,7 +8,9 @@ export default defineNuxtConfig({
     plugins: [tailwindcss(), ViteYaml()],
   },
   css: ["~/assets/app.css"],
-  modules: ['@pinia/nuxt', 'pinia-plugin-persistedstate/nuxt', '@nuxt/test-utils/module'],
-  plugins: ['~/plugins/deck-db.ts'],
-
-})
+  modules: [
+    "@pinia/nuxt",
+    "pinia-plugin-persistedstate/nuxt",
+    "@nuxt/test-utils/module",
+  ],
+});
