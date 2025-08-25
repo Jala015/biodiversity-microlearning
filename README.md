@@ -1,8 +1,8 @@
-# 🎯 Projeto: MicroLearning de Fauna
+# 🎯 Projeto: MicroLearning de Biodiversidade
 
 ## 1. O que é?
 
-Uma plataforma de microlearning gamificada para aprender sobre fauna local através de flashcards inteligentes. O sistema utiliza repetição espaçada para otimizar a retenção do conhecimento, organizando o aprendizado em sessões curtas e envolventes.
+Uma plataforma de microlearning gamificada para aprender sobre biodiversidade local através de flashcards inteligentes. O sistema utiliza repetição espaçada para otimizar a retenção do conhecimento, organizando o aprendizado em sessões curtas e envolventes.
 
 ### 🎮 Como Funciona?
 
