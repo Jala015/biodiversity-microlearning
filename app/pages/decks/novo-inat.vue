@@ -3,6 +3,10 @@ const circuloGeoJson = ref(null);
 function handleCircle(geojson) {
     circuloGeoJson.value = geojson; // Armazena o GeoJSON do círculo
 }
+
+function montarDeck(circulo) {
+    return; //TODO
+}
 </script>
 
 <template>

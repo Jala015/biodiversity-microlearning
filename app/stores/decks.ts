@@ -3,12 +3,18 @@ import { defineStore } from "pinia";
 import { openDB, type IDBPDatabase } from "idb";
 import { debounce } from "lodash";
 
+interface Especie {
+  nome_cientifico: string;
+  nome_popular?: string;
+}
+
 export interface Card {
   id: string;
   taxon: string;
   nivel: "facil" | "medio" | "dificil" | "desafio";
   cooldown: number;
   lastSeenAt: number;
+  alternativas_erradas: Especie[];
 }
 
 export interface DeckConfig {

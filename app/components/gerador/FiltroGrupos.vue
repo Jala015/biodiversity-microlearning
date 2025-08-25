@@ -22,6 +22,12 @@ const grupos = ref([
     { nome: "Insetos", gbifId: 216, incluido_por: [1, 54], nivel: 3 },
     { nome: "Besouros", gbifId: 1470, incluido_por: [1, 54, 216], nivel: 4 },
     { nome: "Borboletas", gbifId: 797, incluido_por: [1, 54, 216], nivel: 4 },
+    {
+        nome: "Abelhas",
+        gbifId: 112871059,
+        incluido_por: [1, 54, 216],
+        nivel: 4,
+    },
     { nome: "Plantas", gbifId: 6, nivel: 1 },
     { nome: "Fungos", gbifId: 5, nivel: 1 },
 ]);

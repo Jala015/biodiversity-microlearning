@@ -189,6 +189,7 @@ app/
 │
 └── utils/
     └── apiEspecies.ts # Utilitários para APIs externas (GBIF, iNaturalist)
+    └── redis.ts      # Utilitários para lidar com o database Redis
 ```
 
 ### Como Executar o Projeto

@@ -22,6 +22,25 @@ export async function obterImagemCurada(
   }
 }
 
+// Função para obter o máximo nível de taxonomia identificável para um determinado ID de iNaturalist
+export async function obterMaxIdLevel(inatId: number): Promise<string> {
+  try {
+    const redisKey = `species:taxonomiclevel:${inatId}`;
+    const response = await $fetch<UpstashResponse<string | null>>(
+      `${process.env.UPSTASH_REDIS_REST_URL}/get/${redisKey}`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}`,
+        },
+      },
+    );
+
+    return response.result || "";
+  } catch (error) {
+    return "";
+  }
+}
+
 // Função auxiliar para testar a conexão
 export async function verificarConexaoRedis(): Promise<boolean> {
   try {

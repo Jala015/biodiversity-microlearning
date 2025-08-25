@@ -1,5 +1,5 @@
 // Importar a função do Redis
-import { obterImagemCurada } from "~/utils/redisImageCache";
+import { obterImagemCurada, obterMaxIdLevel } from "~/utils/redis";
 
 //----------------------------//
 //                            //
@@ -71,6 +71,7 @@ interface EspecieComDados {
   contagemOcorrencias?: number; // opcional, usado para contar ocorrências na região
   nome_popular?: string;
   media?: MediaEspecie[];
+  max_id_level: string; // Qual o nível taxonônimo máximo que dá para identificar via foto.
 }
 
 //----------------------------//
@@ -148,13 +149,15 @@ function turfToWkt(polygon: any): string {
 // obter espécies mais comuns na região
 interface SearchOptions {
   geomCircle: any; // Geometria do círculo (turf.js)
-  maxSpecies: number; // Número máximo de espécies (padrão: 10)
-  taxonId?: number; // ID do grupo taxonômico (padrão: 3 = Aves)
+  maxSpecies?: number; // Número máximo de espécies (padrão: 20)
+  taxonKeys?: number[]; // IDs de grupo taxonômico para filtro
 }
 export async function obterEspeciesMaisComuns(opcoes: SearchOptions): Promise<{
   nomes_cientificos: string[];
   speciesCounts: Map<string, number>;
 }> {
+  opcoes.maxSpecies = opcoes.maxSpecies || 20;
+
   const geomWkt = turfToWkt(opcoes.geomCircle);
   const params = new URLSearchParams({
     geometry: geomWkt,
@@ -162,8 +165,10 @@ export async function obterEspeciesMaisComuns(opcoes: SearchOptions): Promise<{
     limit: "0", // Usar '0' para obter apenas os facetas
     datasetKey: "50c9509d-22c7-4a22-a47d-8c48425ef4a7", //iNat research grade
   });
-  if (opcoes.taxonId) {
-    params.append("taxon_key", opcoes.taxonId.toString());
+  if (opcoes.taxonKeys && opcoes.taxonKeys.length > 0) {
+    opcoes.taxonKeys.forEach((key) => {
+      params.append("taxon_key", key.toString());
+    });
   }
 
   const url = `https://api.gbif.org/v1/occurrence/search?${params.toString()}`;
@@ -215,7 +220,7 @@ export async function montarDetalhesDasEspecies(
   >();
 
   // Buscar dados do iNaturalist para todas as espécies usando GBIF species name
-  for (const n of scientificNames.slice(0, maxSpecies * 3)) {
+  for (const n of scientificNames.slice(0, maxSpecies * 2)) {
     try {
       //delay para respeitar os limites indicados pelo iNaturalist
       setTimeout(async () => {
@@ -254,12 +259,16 @@ export async function montarDetalhesDasEspecies(
         fonteImagem = "curada";
       }
 
+      // Buscar max_id_level do Redis
+      const max_id_level = await obterMaxIdLevel(dados.inatId);
+
       speciesMap.set(speciesKey, {
         speciesKey,
         nome_cientifico: dados.nome_cientifico,
         nome_popular: dados.nomePopularPt,
         media: [mediaFinal],
         contagemOcorrencias: count,
+        max_id_level,
       });
 
       especiesComImagem++;
