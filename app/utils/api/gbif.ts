@@ -74,15 +74,15 @@ export async function obterEspeciesMaisComuns(opcoes: SearchOptions): Promise<{
       try {
         const speciesUrl = `/api/gbif/species/${speciesKey}`;
         const { data: speciesData } = await useFetch<{
-          scientificName: string;
+          canonicalName: string;
         }>(speciesUrl, {
           key: `gbif-species-${speciesKey}`,
           server: false,
-          default: () => ({ scientificName: "" }),
+          default: () => ({ canonicalName: "" }),
         });
         speciesResults.push({
           speciesKey,
-          scientificName: speciesData.value?.scientificName || "",
+          scientificName: speciesData.value?.canonicalName || "",
         });
 
         // Delay de 510ms entre consultas
