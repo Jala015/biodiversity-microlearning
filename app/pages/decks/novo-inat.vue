@@ -24,8 +24,8 @@ async function montarDeck(circulo) {
     console.log("Montando deck");
     carregando.value = true;
     const deck = await criarDeckAutomatico(circulo, 20);
-    console.log("deck_id.value:", deck_id.value);
-    const deckComposable = useDeck(deck_id.value);
+    console.log("deck_id.value:", deckstore_id.value);
+    const deckComposable = useDeck(deckstore_id.value);
     deckComposable.addCards(deck.cards);
     console.log("Deck montado com sucesso");
     carregando.value = false;
