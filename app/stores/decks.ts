@@ -45,13 +45,6 @@ export const ORDEM_NIVEIS: NivelDificuldade[] = [
   "desafio",
 ];
 
-export const deck_list = defineStore("lista-decks", {
-  state: () => ({
-    decks: [] as DeckConfig[],
-  }),
-  persist: true,
-});
-
 // Store global para todos os decks
 export const useAllDecksStore = defineStore("all-decks", {
   state: () => ({
@@ -94,7 +87,13 @@ export const useAllDecksStore = defineStore("all-decks", {
     async saveDeckToDb(deckId: string) {
       const deckState = this.decks[deckId];
       if (deckState?._db) {
-        await deckState._db.put("state", deckState, "pinia");
+        try {
+          // Create a copy without the _db reference to avoid circular serialization
+          const { _db, ...stateToSave } = deckState;
+          await _db.put("state", stateToSave, "pinia");
+        } catch (error) {
+          console.error(`Failed to save deck ${deckId} to IndexedDB:`, error);
+        }
       }
     },
   },
@@ -115,6 +114,7 @@ export const useDeck = (deckId: string) => {
   // Getters
   const currentLevelStats = computed(() => {
     const deck = state.value;
+    if (!deck) return null;
     const cardsNivelAtual = deck.levelsQueue.filter(
       (card) => card.nivel === deck.currentLevel,
     );
@@ -139,6 +139,7 @@ export const useDeck = (deckId: string) => {
 
   const deckStats = computed(() => {
     const deck = state.value;
+    if (!deck) return null;
     const totalCards =
       deck.levelsQueue.length +
       deck.reviewQueue.length +
@@ -155,6 +156,7 @@ export const useDeck = (deckId: string) => {
 
   const nextAvailableLevel = computed(() => {
     const deck = state.value;
+    if (!deck) return null;
     const currentIndex = ORDEM_NIVEIS.indexOf(deck.currentLevel);
     if (currentIndex < ORDEM_NIVEIS.length - 1) {
       return ORDEM_NIVEIS[currentIndex + 1];
@@ -164,11 +166,13 @@ export const useDeck = (deckId: string) => {
 
   const hasCurrentLevelReviews = computed(() => {
     const deck = state.value;
+    if (!deck) return false;
     return deck.reviewQueue.some((card) => card.nivel === deck.currentLevel);
   });
 
   const cardsByLevel = computed(() => {
     const deck = state.value;
+    if (!deck) return null;
     const distribution: Record<
       NivelDificuldade,
       { novos: number; revisao: number; cooldown: number }
@@ -187,59 +191,80 @@ export const useDeck = (deckId: string) => {
   });
 
   // Actions
+  const saveDebounced = debounce(async () => {
+    await allDecks.saveDeckToDb(deckId);
+  }, 500);
+
   const initDB = async (dbName = `deckdb-${deckId}`, dbVersion = 1) => {
-    const db = await openDB(dbName, dbVersion, {
-      upgrade(db) {
-        db.createObjectStore("state");
-      },
-    });
-    allDecks.decks[deckId]._db = db;
+    try {
+      const db = await openDB(dbName, dbVersion, {
+        upgrade(db) {
+          if (!db.objectStoreNames.contains("state")) {
+            db.createObjectStore("state");
+          }
+        },
+      });
 
-    const saved = await db.get("state", "pinia");
-    if (saved) {
-      Object.assign(allDecks.decks[deckId], saved);
+      const deck = allDecks.decks[deckId];
+      if (!deck) return;
+      deck._db = db;
+
+      // Load saved state
+      const saved = await db.get("state", "pinia");
+      if (saved && typeof saved === "object") {
+        const currentDeck = allDecks.decks[deckId];
+        if (currentDeck) {
+          // Preserve the _db reference
+          const dbRef = currentDeck._db;
+          Object.assign(currentDeck, saved);
+          currentDeck._db = dbRef;
+        }
+      }
+    } catch (error) {
+      console.error(
+        `Failed to initialize IndexedDB for deck ${deckId}:`,
+        error,
+      );
     }
-
-    // Hook com debounce para salvar automaticamente
-    const saveDebounced = debounce(async () => {
-      await allDecks.saveDeckToDb(deckId);
-    }, 500);
-
-    // Observa mudanças no deck específico
-    watch(
-      state,
-      () => {
-        saveDebounced();
-      },
-      { deep: true },
-    );
   };
 
   const incrementGlobalCounter = () => {
-    allDecks.decks[deckId].globalCounter += 1;
+    const deck = allDecks.decks[deckId];
+    if (!deck) return;
+    deck.globalCounter += 1;
+    saveDebounced();
   };
 
   const setCurrentLevel = (level: NivelDificuldade) => {
-    allDecks.decks[deckId].currentLevel = level;
+    const deck = allDecks.decks[deckId];
+    if (!deck) return;
+    deck.currentLevel = level;
+    saveDebounced();
   };
 
   const canAdvanceLevel = (): boolean => {
     const deck = state.value;
-    const currentIndex = ORDEM_NIVEIS.indexOf(deck.currentLevel);
+    if (!deck) return false;
+    const currentIndex = ORDEM_NIVEIS.indexOf(deck?.currentLevel || "facil");
     return (
       currentIndex < ORDEM_NIVEIS.length - 1 &&
-      deck.levelsQueue.filter((card) => card.nivel === deck.currentLevel)
-        .length === 0
+      (deck?.levelsQueue || []).filter(
+        (card) => card.nivel === deck?.currentLevel,
+      ).length === 0
     );
   };
 
   const advanceLevel = (): boolean => {
     if (canAdvanceLevel()) {
       const deck = state.value;
+      if (!deck) return false;
       const currentIndex = ORDEM_NIVEIS.indexOf(deck.currentLevel);
       const nextLevel = ORDEM_NIVEIS[currentIndex + 1];
       if (nextLevel) {
-        allDecks.decks[deckId].currentLevel = nextLevel;
+        const deckToUpdate = allDecks.decks[deckId];
+        if (!deckToUpdate) return false;
+        deckToUpdate.currentLevel = nextLevel;
+        saveDebounced();
         return true;
       }
     }
@@ -248,11 +273,13 @@ export const useDeck = (deckId: string) => {
 
   const getAvailableCardsForCurrentLevel = (): Card[] => {
     const deck = state.value;
+    if (!deck) return [];
     return deck.levelsQueue.filter((card) => card.nivel === deck.currentLevel);
   };
 
   const updateCooldown = (card: Card, acertou: boolean) => {
     const deck = allDecks.decks[deckId];
+    if (!deck) return;
     const aleatoriedade_cooldown = Math.round(Math.random() * 10) - 5;
     if (acertou) {
       card.cooldown =
@@ -269,10 +296,12 @@ export const useDeck = (deckId: string) => {
     if (!deck.cooldownQueue.some((c) => c.id === card.id)) {
       deck.cooldownQueue.push(card);
     }
+    saveDebounced();
   };
 
   const refreshReviewQueue = () => {
     const deck = allDecks.decks[deckId];
+    if (!deck) return;
     const readyCards = deck.cooldownQueue.filter(
       (card) => deck.globalCounter - card.lastSeenAt >= card.cooldown,
     );
@@ -281,10 +310,12 @@ export const useDeck = (deckId: string) => {
     deck.cooldownQueue = deck.cooldownQueue.filter(
       (c) => !readyCards.includes(c),
     );
+    saveDebounced();
   };
 
   const drawNextCard = (): Card | null => {
     const deck = allDecks.decks[deckId];
+    if (!deck) return null;
     const cardsNovosNivelAtual = getAvailableCardsForCurrentLevel();
     const cardsRevisao = deck.reviewQueue;
 
@@ -344,6 +375,7 @@ export const useDeck = (deckId: string) => {
 
   const addCards = (cards: Card[] | Card) => {
     const deck = allDecks.decks[deckId];
+    if (!deck) return;
     if (!Array.isArray(cards)) {
       cards = [cards];
     }
@@ -352,6 +384,7 @@ export const useDeck = (deckId: string) => {
         deck.levelsQueue.push(card);
       }
     });
+    saveDebounced();
   };
 
   return {
@@ -376,11 +409,6 @@ export const useDeck = (deckId: string) => {
     refreshReviewQueue,
     drawNextCard,
     addCards,
+    saveDebounced,
   };
-};
-
-// Mantém a função original para compatibilidade (deprecated)
-export const useDeckStore = (deckId: string) => {
-  console.warn("useDeckStore is deprecated, use useDeck instead");
-  return useDeck(deckId);
 };
