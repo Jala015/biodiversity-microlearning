@@ -92,6 +92,7 @@ export async function consultarApiINat(
 /**
  * Gera uma lista de táxons distratores (grupos irmãos) para um táxon correto
  */
+//FIXME
 export async function obterTaxonsIrmaos(
   correctTaxon: INatTaxon,
   count: number = 5,

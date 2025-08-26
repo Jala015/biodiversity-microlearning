@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from "vue";
-import { useDeckStore } from "~/stores/decks";
+import { useDeck } from "~/stores/decks";
 import { criarDeckAutomatico } from "~/utils/api";
 import { customAlphabet } from "nanoid/non-secure";
 import { onMounted } from "vue";
@@ -24,9 +24,9 @@ async function montarDeck(circulo) {
     console.log("Montando deck");
     carregando.value = true;
     const deck = await criarDeckAutomatico(circulo, 20);
-    console.log("deckstore_id.value:", deckstore_id.value);
-    const deckStore = useDeckStore(deckstore_id.value);
-    await deckStore.addCards(deck.cards);
+    console.log("deck_id.value:", deck_id.value);
+    const deckComposable = useDeck(deck_id.value);
+    deckComposable.addCards(deck.cards);
     console.log("Deck montado com sucesso");
     carregando.value = false;
 }
@@ -50,7 +50,6 @@ async function montarDeck(circulo) {
                 <GeradorMapa @circle-drawn="handleCircle" />
             </ClientOnly>
         </div>
-        <!-- TODO colocar modal com  opções de filtros de grupos e seletor de dificuldade -->
         <GeradorFiltroGrupos />
         <button
             :disabled="!circuloGeoJson || carregando"
