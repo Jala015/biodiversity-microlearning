@@ -23,6 +23,9 @@ export async function consultarApiINat(
     const inatUrl = `/api/inaturalist/taxa?q=${encodeURIComponent(
       scientificName,
     )}&locale=pt-BR`;
+    console.log(
+      `ℹ️ Consultando iNaturalist para ${scientificName}. URL: ${inatUrl}`,
+    );
     const { data: inatResp, error } = await useFetch<INatTaxaResponse>(
       decodeURIComponent(inatUrl),
       {
@@ -39,8 +42,8 @@ export async function consultarApiINat(
 
     if (error.value) {
       console.error(
-        `❌ Erro ao consultar iNaturalist para ${scientificName}:`,
-        error.value,
+        `❌ Erro ao consultar iNaturalist para ${scientificName} na URL ${inatUrl}:`,
+        error,
       );
       return null;
     }
@@ -104,6 +107,9 @@ export async function obterTaxonsIrmaos(
     const inatUrl = `/api/inaturalist/taxa?parent_id=${correctTaxon.parent_id}&per_page=${
       count * 3
     }&is_active=true&rank_level=${correctTaxon.rank_level}&locale=pt-BR`;
+    console.log(
+      `ℹ️ Buscando táxons irmãos para ${correctTaxon.name}. URL: ${inatUrl}`,
+    );
     const { data: inatResp, error } = await useFetch<INatTaxaResponse>(
       decodeURIComponent(inatUrl),
       {
@@ -118,10 +124,10 @@ export async function obterTaxonsIrmaos(
       },
     );
 
-    if (error.value) {
+    if (error) {
       console.error(
-        `❌ Erro ao buscar táxons irmãos para ${correctTaxon.name}:`,
-        error.value,
+        `❌ Erro ao buscar táxons irmãos para ${correctTaxon.name} na URL ${inatUrl}:`,
+        error,
       );
       return [];
     }
@@ -158,6 +164,7 @@ export async function obterEspeciesAleatorias(
   try {
     const randomPage = Math.floor(Math.random() * 100) + 1;
     const inatUrl = `/api/inaturalist/taxa?rank=species&is_active=true&per_page=${count * 2}&page=${randomPage}&locale=pt-BR`;
+    console.log(`ℹ️ Buscando ${count} espécies aleatórias. URL: ${inatUrl}`);
     const { data: inatResp, error } = await useFetch<INatTaxaResponse>(
       decodeURIComponent(inatUrl),
       {
@@ -173,7 +180,10 @@ export async function obterEspeciesAleatorias(
     );
 
     if (error.value) {
-      console.error("❌ Erro ao buscar espécies aleatórias:", error.value);
+      console.error(
+        `❌ Erro ao buscar espécies aleatórias na URL ${inatUrl}:`,
+        error.value,
+      );
       return [];
     }
 
