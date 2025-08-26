@@ -3,15 +3,16 @@ import { ref } from "vue";
 import { useDeckStore } from "~/stores/decks";
 import { criarDeckAutomatico } from "~/utils/api";
 import { customAlphabet } from "nanoid/non-secure";
+import { onMounted } from "vue";
 
 const nanoid = customAlphabet("1234567890abcdef", 11);
 
-let deck_id = ref(null);
+let deckstore_id = ref(null);
 
 let carregando = ref(false);
 
 onMounted(() => {
-    deck_id.value = nanoid();
+    deckstore_id.value = nanoid();
 });
 
 const circuloGeoJson = ref(null);
@@ -23,7 +24,8 @@ async function montarDeck(circulo) {
     console.log("Montando deck");
     carregando.value = true;
     const deck = await criarDeckAutomatico(circulo, 20);
-    const deckStore = useDeckStore(deck_id.value);
+    console.log("deckstore_id.value:", deckstore_id.value);
+    const deckStore = useDeckStore(deckstore_id.value);
     await deckStore.addCards(deck.cards);
     console.log("Deck montado com sucesso");
     carregando.value = false;

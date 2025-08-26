@@ -253,7 +253,7 @@ export async function montarCardsComAlternativas(
           : "";
 
       console.log(
-        `✓ Card criado para ${taxonNome} (${dados.nomePopularPt || "sem nome popular"}) - Nível: ${nivel} - Count total: ${countTotal}${especiesInfo}`,
+        `✓ Card criado para ${taxonNome} (${dados.nomePopularPt || "sem nome popular"}) - Nível: ${nivel}`,
       );
     } catch (error) {
       console.error(
