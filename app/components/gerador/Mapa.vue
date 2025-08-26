@@ -72,7 +72,7 @@ const createDefaultCircle = (userLocation) => {
     const turfCircle = circle(
         [userLocation.lng, userLocation.lat], // [lon, lat]
         DEFAULT_RADIUS_METERS / 1000, // km (turf usa km)
-        { steps: 64, units: "kilometers" },
+        { steps: 16, units: "kilometers" },
     );
 
     emit("circle-drawn", turfCircle);
