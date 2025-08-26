@@ -8,6 +8,8 @@ const nanoid = customAlphabet("1234567890abcdef", 11);
 
 let deck_id = ref(null);
 
+let carregando = ref(false);
+
 onMounted(() => {
     deck_id.value = nanoid();
 });
@@ -19,10 +21,12 @@ function handleCircle(geojson) {
 
 async function montarDeck(circulo) {
     console.log("Montando deck");
+    carregando.value = true;
     const deck = await criarDeckAutomatico(circulo, 20);
     const deckStore = useDeckStore(deck_id.value);
     await deckStore.addCards(deck.cards);
     console.log("Deck montado com sucesso");
+    carregando.value = false;
 }
 </script>
 
@@ -47,11 +51,11 @@ async function montarDeck(circulo) {
         <!-- TODO colocar modal com  opções de filtros de grupos e seletor de dificuldade -->
         <GeradorFiltroGrupos />
         <button
-            :disabled="!circuloGeoJson"
+            :disabled="!circuloGeoJson || carregando"
             class="btn w-full rounded-xl btn-primary btn-lg"
             @click="montarDeck(circuloGeoJson)"
         >
-            Gerar deck
+            {{ carregando ? "Gerando deck..." : "Gerar deck" }}
         </button>
     </div>
 </template>

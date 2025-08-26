@@ -306,10 +306,6 @@ export async function criarDeckAutomatico(
     return {
       cards: cards,
       totalCards: cards.length,
-      regiao: {
-        coordenadas: geomCircle.geometry.coordinates,
-        tipo: geomCircle.geometry.type,
-      },
     };
   } catch (error) {
     console.error("❌ Erro ao criar deck automático:", error);

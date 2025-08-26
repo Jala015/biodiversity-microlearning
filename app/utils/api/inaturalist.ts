@@ -110,6 +110,7 @@ export async function obterTaxonsIrmaos(
     console.log(
       `ℹ️ Buscando táxons irmãos para ${correctTaxon.name}. URL: ${inatUrl}`,
     );
+    await new Promise((resolve) => setTimeout(resolve, 1001)); // Adiciona um delay de 1001ms
     const { data: inatResp, error } = await useFetch<INatTaxaResponse>(
       inatUrl,
       {
@@ -165,6 +166,7 @@ export async function obterEspeciesAleatorias(
     const randomPage = Math.floor(Math.random() * 100) + 1;
     const inatUrl = `https://api.inaturalist.org/v1/taxa?rank=species&is_active=true&per_page=${count * 2}&page=${randomPage}&locale=pt-BR`;
     console.log(`ℹ️ Buscando ${count} espécies aleatórias. URL: ${inatUrl}`);
+    await new Promise((resolve) => setTimeout(resolve, 1001)); // Adiciona um delay de 1001ms
     const { data: inatResp, error } = await useFetch<INatTaxaResponse>(
       inatUrl,
       {
