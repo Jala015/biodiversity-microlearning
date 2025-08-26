@@ -3,10 +3,6 @@
     {
       "source": "/api/gbif/(.*)",
       "destination": "https://api.gbif.org/v1/$1"
-    },
-    {
-      "source": "/api/inaturalist/(.*)",
-      "destination": "https://api.inaturalist.org/v1/$1"
     }
   ]
 }
