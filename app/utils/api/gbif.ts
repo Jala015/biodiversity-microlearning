@@ -35,14 +35,17 @@ export async function obterEspeciesMaisComuns(opcoes: SearchOptions): Promise<{
 
   try {
     // Usar useFetch com URL direta do GBIF (Vercel rewrites vai fazer o proxy)
-    const { data: response, error } = await useFetch<GBIFResponse>(url, {
-      key: `gbif-${btoa(url).slice(0, 10)}`, // Cache key único baseado na URL
-      server: false, // Force client-side apenas (importante para client-only apps)
-      default: () => ({ facets: [] }),
-      headers: {
-        "Cache-Control": "max-age=3600",
+    const { data: response, error } = await useFetch<GBIFResponse>(
+      decodeURIComponent(url),
+      {
+        key: `gbif-${btoa(url).slice(0, 10)}`, // Cache key único baseado na URL
+        server: false, // Force client-side apenas (importante para client-only apps)
+        default: () => ({ facets: [] }),
+        headers: {
+          "Cache-Control": "max-age=3600",
+        },
       },
-    });
+    );
 
     if (error.value) {
       console.error("❌ Erro na requisição GBIF:", error.value);
