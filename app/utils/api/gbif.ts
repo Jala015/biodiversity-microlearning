@@ -11,7 +11,7 @@ import * as wellknown from "wellknown";
  * Converte geometria Turf.js para formato WKT
  */
 function turfToWkt(polygon: any): string {
-  return wellknown.stringify(polygon);
+  return encodeURIComponent(wellknown.stringify(polygon));
 }
 
 /**
