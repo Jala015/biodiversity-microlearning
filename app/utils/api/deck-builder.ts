@@ -265,14 +265,16 @@ export async function montarCardsComAlternativas(
  * Função principal para criar um deck automático baseado em região geográfica
  */
 export async function criarDeckAutomatico(
-  geomCircle: any,
+  circleData: { lat: number; lng: number; radiusKm: number },
   maxSpecies: number = 20,
   taxonKeys?: number[],
 ) {
   try {
     // 1. Obter espécies mais comuns na região
     const { nomes_cientificos, speciesCounts } = await obterEspeciesMaisComuns({
-      geomCircle,
+      lat: circleData.lat,
+      lng: circleData.lng,
+      radiusKm: circleData.radiusKm,
       maxSpecies,
       taxonKeys,
     });

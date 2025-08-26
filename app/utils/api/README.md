@@ -87,15 +87,13 @@ import { obterEspeciesMaisComuns } from '~/utils/api/gbif';
 
 #### 1. Criar Deck Automático com Cards
 ```typescript
-const geometriaCirculo = {
-  type: "Feature",
-  geometry: {
-    type: "Polygon",
-    coordinates: [[[-48, -16], [-47, -16], [-47, -15], [-48, -15], [-48, -16]]]
-  }
+const circleData = {
+  lat: -15.5, // Latitude do centro
+  lng: -47.5, // Longitude do centro  
+  radiusKm: 50 // Raio em quilômetros
 };
 
-const deck = await criarDeckAutomatico(geometriaCirculo, 20);
+const deck = await criarDeckAutomatico(circleData, 20);
 console.log(`Deck criado com ${deck.totalCards} cards`);
 
 // Os cards já vêm com alternativas prontas e são agrupados por max_id_level:

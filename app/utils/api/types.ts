@@ -89,7 +89,9 @@ export interface ConsultaINatResult {
 
 // Tipo para opções de busca GBIF
 export interface SearchOptions {
-  geomCircle: any; // Geometria do círculo (turf.js)
+  lat: number; // Latitude do centro do círculo
+  lng: number; // Longitude do centro do círculo
+  radiusKm: number; // Raio do círculo em quilômetros
   maxSpecies?: number; // Número máximo de espécies (padrão: 20)
   taxonKeys?: number[]; // IDs de grupo taxonômico para filtro
 }

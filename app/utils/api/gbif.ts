@@ -1,18 +1,10 @@
 import type { SearchOptions, GBIFResponse } from "./types";
-import * as wellknown from "wellknown";
 
 //----------------------------//
 //                            //
 //     Funções do GBIF        //
 //                            //
 //----------------------------//
-
-/**
- * Converte geometria Turf.js para formato WKT
- */
-function turfToWkt(polygon: any): string {
-  return encodeURIComponent(wellknown.stringify(polygon));
-}
 
 /**
  * Obter espécies mais comuns na região usando API do GBIF
@@ -23,10 +15,11 @@ export async function obterEspeciesMaisComuns(opcoes: SearchOptions): Promise<{
 }> {
   opcoes.maxSpecies = opcoes.maxSpecies || 20;
 
-  const geomWkt = turfToWkt(opcoes.geomCircle);
-  console.log("WKT:", geomWkt);
+  const geoDistance = `${opcoes.lat},${opcoes.lng},${opcoes.radiusKm}km`;
+  console.log("GeoDistance:", geoDistance);
+
   const params = new URLSearchParams({
-    geometry: geomWkt,
+    geoDistance: geoDistance,
     facet: "scientificName",
     limit: "0", // Usar '0' para obter apenas os facetas
     datasetKey: "50c9509d-22c7-4a22-a47d-8c48425ef4a7", //iNat research grade

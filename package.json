@@ -14,7 +14,6 @@
     "@phosphor-icons/vue": "2.2.1",
     "@pinia/nuxt": "^0.11.2",
     "@tailwindcss/vite": "^4.1.12",
-    "@turf/circle": "^7.2.0",
     "browser-image-compression": "^2.0.2",
     "daisyui": "^5.0.50",
     "idb": "^8.0.3",
@@ -27,8 +26,7 @@
     "pinia-plugin-persistedstate": "^4.5.0",
     "tailwindcss": "^4.1.12",
     "vue": "^3.5.18",
-    "vue-router": "^4.5.1",
-    "wellknown": "^0.5.0"
+    "vue-router": "^4.5.1"
   },
   "devDependencies": {
     "@modyfi/vite-plugin-yaml": "^1.1.1",

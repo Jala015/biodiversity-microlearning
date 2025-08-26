@@ -37,7 +37,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet-draw";
 import "leaflet-draw/dist/leaflet.draw.css";
-import circle from "@turf/circle";
+
 import { max } from "lodash";
 
 const emit = defineEmits(["circle-drawn"]);
@@ -68,14 +68,12 @@ const createDefaultCircle = (userLocation) => {
 
     drawnItems.addLayer(defaultCircle);
 
-    // Gera círculo com Turf.js e emite evento
-    const turfCircle = circle(
-        [userLocation.lng, userLocation.lat], // [lon, lat]
-        DEFAULT_RADIUS_METERS / 1000, // km (turf usa km)
-        { steps: 8, units: "kilometers" },
-    );
-
-    emit("circle-drawn", turfCircle);
+    // Emite as coordenadas e raio diretamente
+    emit("circle-drawn", {
+        lat: userLocation.lat,
+        lng: userLocation.lng,
+        radiusKm: DEFAULT_RADIUS_METERS / 1000, // Converte metros para km
+    });
 };
 
 const locateUser = () => {
@@ -193,14 +191,12 @@ onMounted(() => {
             drawnItems.addLayer(layer);
         }
 
-        // Gera círculo com Turf.js
-        const turfCircle = circle(
-            [center.lng, center.lat], // [lon, lat]
-            radius / 1000, // km (turf usa km)
-            { steps: 64, units: "kilometers" },
-        );
-
-        emit("circle-drawn", turfCircle);
+        // Emite as coordenadas e raio diretamente
+        emit("circle-drawn", {
+            lat: center.lat,
+            lng: center.lng,
+            radiusKm: radius / 1000, // Converte metros para km
+        });
 
         // Reabilita o desenho para permitir novos círculos
         startDrawing();
