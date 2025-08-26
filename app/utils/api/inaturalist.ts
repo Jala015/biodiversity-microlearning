@@ -20,7 +20,7 @@ export async function consultarApiINat(
   scientificName: string,
 ): Promise<ConsultaINatResult | null> {
   try {
-    const inatUrl = `/api/inaturalist/taxa?q=${encodeURIComponent(
+    const inatUrl = `https://api.inaturalist.org/v1/taxa?q=${encodeURIComponent(
       scientificName,
     )}&locale=pt-BR`;
     console.log(
