@@ -86,11 +86,18 @@ export async function montarCardsComAlternativas(
   const dadosINat = new Map<string, ConsultaINatResult>();
 
   // Buscar dados do iNaturalist para todas as espécies usando GBIF species name
-  for (const n of scientificNames.slice(0, maxSpecies * 2)) {
+  const speciesSlice = scientificNames.slice(0, maxSpecies * 2);
+  for (let i = 0; i < speciesSlice.length; i++) {
+    const n = speciesSlice[i];
     try {
       const resultadoINat = await consultarApiINat(n);
       if (resultadoINat) {
         dadosINat.set(n, resultadoINat);
+      }
+
+      // Delay de 1001ms entre consultas
+      if (i < speciesSlice.length - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 1001));
       }
     } catch (error) {
       console.error(`❌ Erro ao buscar dados iNaturalist para ${n}:`, error);
@@ -328,11 +335,18 @@ export async function montarDetalhesDasEspecies(
   const dadosINat = new Map<string, ConsultaINatResult>();
 
   // Buscar dados do iNaturalist para todas as espécies usando GBIF species name
-  for (const n of scientificNames.slice(0, maxSpecies * 2)) {
+  const speciesSlice = scientificNames.slice(0, maxSpecies * 2);
+  for (let i = 0; i < speciesSlice.length; i++) {
+    const n = speciesSlice[i];
     try {
       const resultadoINat = await consultarApiINat(n);
       if (resultadoINat) {
         dadosINat.set(n, resultadoINat);
+      }
+
+      // Delay de 1001ms entre consultas
+      if (i < speciesSlice.length - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 1001));
       }
     } catch (error) {
       console.error(`❌ Erro ao buscar dados iNaturalist para ${n}:`, error);

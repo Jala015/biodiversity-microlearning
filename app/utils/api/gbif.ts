@@ -20,7 +20,7 @@ export async function obterEspeciesMaisComuns(opcoes: SearchOptions): Promise<{
 
   const params = new URLSearchParams({
     geoDistance: geoDistance,
-    facet: "species",
+    facet: "speciesKey",
     limit: "0", // Usar '0' para obter apenas os facetas
     datasetKey: "50c9509d-22c7-4a22-a47d-8c48425ef4a7", //iNat research grade
   });
@@ -56,15 +56,58 @@ export async function obterEspeciesMaisComuns(opcoes: SearchOptions): Promise<{
       throw new Error("Resposta inválida do GBIF");
     }
 
-    const nomes_cientificos =
+    // Obter speciesKeys do facet
+    const speciesKeys =
       response.value.facets?.[0]?.counts
         .map((c) => c.name)
-        .slice(0, opcoes.maxSpecies * 2) || []; // Buscar o dobro para filtrar depois
+        .slice(0, opcoes.maxSpecies * 2) || [];
 
-    // Montar um map com os respectivos counts
+    if (speciesKeys.length === 0) {
+      console.log("📊 Nenhuma espécie encontrada na região");
+      return { nomes_cientificos: [], speciesCounts: new Map() };
+    }
+
+    // Buscar nomes científicos para cada speciesKey com delay
+    const speciesResults = [];
+    for (let i = 0; i < speciesKeys.length; i++) {
+      const speciesKey = speciesKeys[i];
+      try {
+        const speciesUrl = `/api/gbif/species/${speciesKey}`;
+        const { data: speciesData } = await useFetch<{
+          scientificName: string;
+        }>(speciesUrl, {
+          key: `gbif-species-${speciesKey}`,
+          server: false,
+          default: () => ({ scientificName: "" }),
+        });
+        speciesResults.push({
+          speciesKey,
+          scientificName: speciesData.value?.scientificName || "",
+        });
+
+        // Delay de 510ms entre consultas
+        if (i < speciesKeys.length - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 510));
+        }
+      } catch (error) {
+        console.warn(`⚠️ Erro ao buscar espécie ${speciesKey}:`, error);
+        speciesResults.push({ speciesKey, scientificName: "" });
+      }
+    }
+
+    // Filtrar apenas espécies com nome científico válido
+    const validSpecies = speciesResults.filter((s) => s.scientificName);
+    const nomes_cientificos = validSpecies
+      .map((s) => s.scientificName)
+      .slice(0, opcoes.maxSpecies);
+
+    // Montar um map com os respectivos counts usando scientificName
     const speciesCounts = new Map<string, number>();
     response.value.facets?.[0]?.counts.forEach((count) => {
-      speciesCounts.set(count.name, count.count);
+      const species = validSpecies.find((s) => s.speciesKey === count.name);
+      if (species?.scientificName) {
+        speciesCounts.set(species.scientificName, count.count);
+      }
     });
 
     console.log(
