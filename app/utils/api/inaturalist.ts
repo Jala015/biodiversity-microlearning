@@ -24,7 +24,7 @@ export async function consultarApiINat(
       scientificName,
     )}&locale=pt-BR`;
     const { data: inatResp, error } = await useFetch<INatTaxaResponse>(
-      inatUrl,
+      decodeURIComponent(inatUrl),
       {
         key: `inat-taxa-${btoa(scientificName).slice(0, 10)}`,
         server: false,
@@ -105,7 +105,7 @@ export async function obterTaxonsIrmaos(
       count * 3
     }&is_active=true&rank_level=${correctTaxon.rank_level}&locale=pt-BR`;
     const { data: inatResp, error } = await useFetch<INatTaxaResponse>(
-      inatUrl,
+      decodeURIComponent(inatUrl),
       {
         key: `inat-siblings-${correctTaxon.parent_id}-${correctTaxon.rank_level}`,
         server: false,
@@ -159,7 +159,7 @@ export async function obterEspeciesAleatorias(
     const randomPage = Math.floor(Math.random() * 100) + 1;
     const inatUrl = `/api/inaturalist/taxa?rank=species&is_active=true&per_page=${count * 2}&page=${randomPage}&locale=pt-BR`;
     const { data: inatResp, error } = await useFetch<INatTaxaResponse>(
-      inatUrl,
+      decodeURIComponent(inatUrl),
       {
         key: `inat-random-${randomPage}-${count}`,
         server: false,

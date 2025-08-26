@@ -16,7 +16,6 @@ export async function obterEspeciesMaisComuns(opcoes: SearchOptions): Promise<{
   opcoes.maxSpecies = opcoes.maxSpecies || 20;
 
   const geoDistance = `${opcoes.lat},${opcoes.lng},${opcoes.radiusKm}km`;
-  console.log("GeoDistance:", geoDistance);
 
   const params = new URLSearchParams({
     geoDistance: geoDistance,
