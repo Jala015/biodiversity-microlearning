@@ -20,7 +20,7 @@ export async function obterEspeciesMaisComuns(opcoes: SearchOptions): Promise<{
 
   const params = new URLSearchParams({
     geoDistance: geoDistance,
-    facet: "scientificName",
+    facet: "species",
     limit: "0", // Usar '0' para obter apenas os facetas
     datasetKey: "50c9509d-22c7-4a22-a47d-8c48425ef4a7", //iNat research grade
   });
