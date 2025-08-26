@@ -111,7 +111,7 @@ export async function obterTaxonsIrmaos(
       `ℹ️ Buscando táxons irmãos para ${correctTaxon.name}. URL: ${inatUrl}`,
     );
     const { data: inatResp, error } = await useFetch<INatTaxaResponse>(
-      decodeURIComponent(inatUrl),
+      inatUrl,
       {
         key: `inat-siblings-${correctTaxon.parent_id}-${correctTaxon.rank_level}`,
         server: false,
@@ -166,7 +166,7 @@ export async function obterEspeciesAleatorias(
     const inatUrl = `https://api.inaturalist.org/v1/taxa?rank=species&is_active=true&per_page=${count * 2}&page=${randomPage}&locale=pt-BR`;
     console.log(`ℹ️ Buscando ${count} espécies aleatórias. URL: ${inatUrl}`);
     const { data: inatResp, error } = await useFetch<INatTaxaResponse>(
-      decodeURIComponent(inatUrl),
+      inatUrl,
       {
         key: `inat-random-${randomPage}-${count}`,
         server: false,
