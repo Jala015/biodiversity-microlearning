@@ -10,9 +10,17 @@ import type { SearchOptions, GBIFResponse } from "./types";
  * Converte geometria Turf.js para formato WKT
  */
 function turfToWkt(polygon: any): string {
-  const coordinates = polygon.geometry.coordinates[0]
-    .map((p: any) => `${p[0]} ${p[1]}`)
-    .join(",");
+  const coords = polygon.geometry.coordinates[0];
+
+  // Garantir que o polígono está fechado (primeiro == último ponto)
+  const closedCoords =
+    coords[0][0] === coords[coords.length - 1][0] &&
+    coords[0][1] === coords[coords.length - 1][1]
+      ? coords
+      : [...coords, coords[0]];
+
+  const coordinates = closedCoords.map((p: any) => `${p[0]} ${p[1]}`).join(",");
+
   return `POLYGON((${coordinates}))`;
 }
 
