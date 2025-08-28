@@ -11,6 +11,15 @@ export interface INatTaxaResponse {
   results: INatTaxon[];
 }
 
+export interface INatChildren {
+  id: number;
+  rank: string;
+  rank_level: number;
+  complete_species_count: number;
+  name: string;
+  preferred_common_name?: string;
+}
+
 export interface INatTaxon {
   id: number;
   rank: string;
@@ -39,6 +48,7 @@ export interface INatTaxon {
   iconic_taxon_name: string;
   preferred_common_name?: string;
   english_common_name?: string;
+  children: INatChildren[];
 }
 
 export interface INatPhoto {

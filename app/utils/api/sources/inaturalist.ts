@@ -4,7 +4,7 @@ import type {
   INatTaxon,
   MediaEspecie,
   ConsultaINatResult,
-  Especie,
+  INatChildren,
 } from "../types";
 
 //----------------------------//
@@ -109,7 +109,7 @@ export async function consultarApiINat(
 export async function obterTaxonsIrmaos(
   correctTaxon: INatTaxon,
   count: number = 5,
-): Promise<INatTaxon[]> {
+): Promise<INatChildren[]> {
   if (!correctTaxon.ancestor_ids || correctTaxon.ancestor_ids.length === 0) {
     console.warn(
       `Táxon ${correctTaxon.name} não possui ancestor_ids, não é possível buscar irmãos.`,
@@ -119,10 +119,9 @@ export async function obterTaxonsIrmaos(
 
   try {
     // Usar ancestor_ids para buscar táxons do mesmo grupo taxonômico
-    const ancestorIdsStr = correctTaxon.ancestor_ids.join(",");
-    const inatUrl = `https://api.inaturalist.org/v1/taxa?ancestor_ids=${ancestorIdsStr}&per_page=${
-      count * 3
-    }&is_active=true&rank_level=${correctTaxon.rank_level}&locale=pt-BR`;
+    const last_ancestor_id =
+      correctTaxon.ancestor_ids[correctTaxon.ancestor_ids.length - 1];
+    const inatUrl = `https://api.inaturalist.org/v1/taxa/${last_ancestor_id}&locale=pt-BR`;
 
     console.log(
       `ℹ️ Buscando táxons irmãos para ${correctTaxon.name} usando ancestor_ids. URL: ${inatUrl}`,
@@ -133,7 +132,7 @@ export async function obterTaxonsIrmaos(
     const { data: inatResp, error } = await useFetch<INatTaxaResponse>(
       inatUrl,
       {
-        key: `inat-siblings-ancestors-${ancestorIdsStr}-${correctTaxon.rank_level}`,
+        key: `inat-taxa-${last_ancestor_id}`,
         server: false,
         default: () => ({
           results: [],
@@ -144,7 +143,7 @@ export async function obterTaxonsIrmaos(
       },
     );
 
-    if (error) {
+    if (error.value) {
       console.error(
         `❌ Erro ao buscar táxons irmãos para ${correctTaxon.name} na URL ${inatUrl}:`,
         error,
@@ -160,12 +159,20 @@ export async function obterTaxonsIrmaos(
       return [];
     }
 
-    const distractorCandidates = inatResp.value.results.filter(
-      (taxon) => taxon.id !== correctTaxon.id,
+    if (!inatResp.value.results[0]) {
+      return [];
+    }
+
+    const candidatos = inatResp.value.results[0].children.filter(
+      (children) => children.id !== correctTaxon.id,
     );
 
-    const shuffled = distractorCandidates.sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, count);
+    //priorizar distratores com mais espécies (proxy para mais famosos)
+    const ordenados = candidatos.sort(
+      (a, b) => b.complete_species_count - a.complete_species_count,
+    );
+
+    return ordenados.slice(0, count);
   } catch (error) {
     console.error(
       `❌ Erro ao buscar táxons irmãos para ${correctTaxon.name}:`,
