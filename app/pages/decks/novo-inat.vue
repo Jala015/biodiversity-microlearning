@@ -25,13 +25,22 @@ function handleCircle(geojson) {
 async function montarDeck(circulo) {
     console.log("Montando deck");
     carregando.value = true;
-    const deck = await criarDeckAutomatico(circulo, 20, filtro.value.taxonKeys);
-    console.log("deck_id.value:", deckstore_id.value);
-    const deckComposable = useDeck(deckstore_id.value);
-    deckComposable.addCards(deck.cards);
-    console.log("Deck montado com sucesso");
-    console.log("deck:", deck);
-    carregando.value = false;
+    try {
+        const deck = await criarDeckAutomatico(
+            circulo,
+            20,
+            filtro.value.taxonKeys,
+        );
+        console.log("deck_id.value:", deckstore_id.value);
+        const deckComposable = useDeck(deckstore_id.value);
+        deckComposable.addCards(deck.cards);
+        console.log("Deck montado com sucesso");
+        console.log("deck:", deck);
+        carregando.value = false;
+    } catch (error) {
+        console.error("Erro ao montar deck:", error);
+        carregando.value = false;
+    }
 }
 </script>
 

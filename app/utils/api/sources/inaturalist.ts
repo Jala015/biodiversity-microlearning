@@ -120,7 +120,7 @@ export async function obterTaxonsIrmaos(
   try {
     // Usar ancestor_ids para buscar táxons do mesmo grupo taxonômico
     const last_ancestor_id =
-      correctTaxon.ancestor_ids[correctTaxon.ancestor_ids.length - 1];
+      correctTaxon.ancestor_ids[correctTaxon.ancestor_ids.length - 2];
     const inatUrl = `https://api.inaturalist.org/v1/taxa/${last_ancestor_id}?locale=pt-BR`;
 
     console.log(
@@ -185,6 +185,7 @@ export async function obterTaxonsIrmaos(
 /**
  * Gera uma lista de táxons primos (netos do mesmo avô taxonômico) para um táxon correto
  * Usa ancestor_ids do iNaturalist para buscar um nível acima dos irmãos
+ * Em seguida, busca os filhos dos "tios" para encontrar os verdadeiros primos
  *
  * Chamada por: gerarAlternativasIncorretas() em alternativas.ts - como fallback quando obterTaxonsIrmaos falha
  */
@@ -244,21 +245,90 @@ export async function obterTaxonsPrimos(
 
     const avô = inatResp.value.results[0];
 
-    if (!avô.children || !avô.children[0]) {
+    if (!avô.children) {
       return [];
     }
 
-    // Buscar "tios" (children do avô) como primos taxonômicos
+    // Filtrar os "tios" (irmãos do pai)
     // Excluir o pai do táxon correto para evitar duplicação com irmãos
-    const candidatos = avô.children.filter(
+    const tios = avô.children.filter(
       (tio) => tio.id !== correctTaxon.parent_id && tio.id !== correctTaxon.id,
     );
 
-    const ordenados = candidatos.sort(
+    // Ordenar tios por número de espécies (priorizar os mais conhecidos)
+    const tiosOrdenados = tios.sort(
       (a, b) => b.complete_species_count - a.complete_species_count,
     );
 
-    return ordenados.slice(0, count);
+    // Buscar filhos dos tios (primos verdadeiros)
+    const primos: INatChildren[] = [];
+
+    // Iterar sobre os tios até obter primos suficientes
+    for (const tio of tiosOrdenados) {
+      if (primos.length >= count) break; // Já temos primos suficientes
+
+      const tioUrl = `https://api.inaturalist.org/v1/taxa/${tio.id}?locale=pt-BR`;
+
+      console.log(
+        `ℹ️ Buscando filhos do táxon ${tio.name} (tio) para encontrar primos. URL: ${tioUrl}`,
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 1001)); // Delay entre requisições
+
+      const { data: tioResp, error: tioError } =
+        await useFetch<INatTaxaResponse>(tioUrl, {
+          key: `inat-taxa-uncle-${tio.id}`,
+          server: false,
+          default: () => ({
+            results: [],
+            total_results: 0,
+            page: 1,
+            per_page: 0,
+          }),
+        });
+
+      if (tioError.value) {
+        console.error(
+          `❌ Erro ao buscar filhos do táxon ${tio.name} na URL ${tioUrl}:`,
+          tioError,
+        );
+        continue; // Tentar próximo tio
+      }
+
+      if (
+        !tioResp.value ||
+        !tioResp.value.results ||
+        !tioResp.value.results[0] ||
+        !tioResp.value.results[0].children
+      ) {
+        continue; // Tentar próximo tio
+      }
+
+      // Adicionar os filhos do tio (primos) à lista
+      const primosDoTio = tioResp.value.results[0].children;
+
+      // Ordenar primos deste tio por número de espécies
+      const primosOrdenados = primosDoTio.sort(
+        (a, b) => b.complete_species_count - a.complete_species_count,
+      );
+
+      // Adicionar primos à lista principal
+      primos.push(...primosOrdenados);
+
+      console.log(
+        `✓ Encontrados ${primosOrdenados.length} primos do táxon ${tio.name}`,
+      );
+    }
+
+    // Se não encontramos primos, retornar os tios como fallback
+    if (primos.length === 0) {
+      console.log(
+        `⚠️ Não foram encontrados primos verdadeiros, usando tios como fallback.`,
+      );
+      return tiosOrdenados.slice(0, count);
+    }
+
+    return primos.slice(0, count);
   } catch (error) {
     console.error(
       `❌ Erro ao buscar táxons primos para ${correctTaxon.name}:`,
