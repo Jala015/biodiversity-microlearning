@@ -29,32 +29,16 @@ function determinarNivelDificuldade(
   // frequência relativa
   let nivel = 1 - count / total; // de 0 a 1
 
-  nivel = nivel * 0.7;
-
-  // espécies pouco avistadas têm penalidade no nível
-  if (count == 1) {
-    nivel += 0.03;
-  } else if (count < 5) {
-    nivel += 0.02;
-  } else if (count < 10) {
-    nivel += 0.01;
-  } else if (count < 20) {
-    nivel += 0.005;
-  }
-
-  switch (maxIdLevel.toLowerCase()) {
-    case "species":
-      nivel += 0.01;
-      break;
-    case "genus":
-      nivel += 0.005;
-      break;
-    case "family":
-      nivel += 0.0025;
-      break;
-    default:
-      break;
-  }
+  // // espécies pouco avistadas têm penalidade no nível
+  // if (count == 1) {
+  //   nivel += 0.03;
+  // } else if (count < 5) {
+  //   nivel += 0.02;
+  // } else if (count < 10) {
+  //   nivel += 0.01;
+  // } else if (count < 20) {
+  //   nivel += 0.005;
+  // }
 
   console.log("calculo do nível: ", nivel);
 
