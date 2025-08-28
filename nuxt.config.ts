@@ -14,4 +14,13 @@ export default defineNuxtConfig({
     "@nuxt/test-utils/module",
   ],
   ssr: false,
+  runtimeConfig: {
+    // As chaves privadas são acessíveis apenas no lado do servidor
+    // NUXT_SECRET_KEY: process.env.NUXT_SECRET_KEY, // Exemplo
+    public: {
+      // As chaves públicas são acessíveis em qualquer lugar (cliente e servidor)
+      upstashRedisRestUrl: process.env.UPSTASH_REDIS_REST_URL,
+      upstashRedisRestToken: process.env.UPSTASH_REDIS_REST_TOKEN,
+    },
+  },
 });

@@ -1,5 +1,6 @@
-import { isNative, max } from "lodash";
 import type { ConsultaINatResult } from "./api";
+
+const runtimeConfig = useRuntimeConfig();
 
 interface UpstashResponse<T = string> {
   result: T;
@@ -11,17 +12,14 @@ export async function obterImagemCurada(
   try {
     const { data: response, error } = await useFetch<
       UpstashResponse<string | null>
-    >(
-      `${process.env.UPSTASH_REDIS_REST_URL}/get/species:imagem:${speciesKey}`,
-      {
-        key: `redis-imagem-${speciesKey}`,
-        server: false,
-        default: () => ({ result: null }),
-        headers: {
-          Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}`,
-        },
+    >(`${runtimeConfig.upstashRedisRestUrl}/get/species:imagem:${speciesKey}`, {
+      key: `redis-imagem-${speciesKey}`,
+      server: false,
+      default: () => ({ result: null }),
+      headers: {
+        Authorization: `Bearer ${runtimeConfig.upstashRedisRestToken}`,
       },
-    );
+    });
 
     if (error.value) {
       console.error(
@@ -61,18 +59,18 @@ export async function obterMaxIdLevel(
       const redisKey = `species:taxonomiclevel:${ancestorId}`;
       const { data: response, error } = await useFetch<
         UpstashResponse<string | null>
-      >(`${process.env.UPSTASH_REDIS_REST_URL}/get/${redisKey}`, {
+      >(`${runtimeConfig.upstashRedisRestUrl}/get/${redisKey}`, {
         server: false,
         default: () => ({ result: null }),
         headers: {
-          Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}`,
+          Authorization: `Bearer ${runtimeConfig.upstashRedisRestToken}`,
         },
       });
 
       // Debug detalhado
       console.info(`🔍 DEBUG ancestorId ${ancestorId}:`);
       console.info(
-        `   - URL: ${process.env.UPSTASH_REDIS_REST_URL}/get/${redisKey}`,
+        `   - URL: ${runtimeConfig.upstashRedisRestUrl}/get/${redisKey}`,
       );
       console.info(`   - error.value:`, error.value);
       console.info(`   - response.value:`, response.value);
@@ -119,12 +117,12 @@ export async function obterAlternativasPreDefinidas(
     const redisKey = `especies:alternativas:${inatId}`;
     const { data: response, error } = await useFetch<
       UpstashResponse<Record<string, string> | null>
-    >(`${process.env.UPSTASH_REDIS_REST_URL}/hgetall/${redisKey}`, {
+    >(`${runtimeConfig.upstashRedisRestUrl}/hgetall/${redisKey}`, {
       key: `redis-alternativas-${inatId}`,
       server: false,
       default: () => ({ result: null }),
       headers: {
-        Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}`,
+        Authorization: `Bearer ${runtimeConfig.upstashRedisRestToken}`,
       },
     });
 
@@ -170,13 +168,13 @@ export async function obterAlternativasPreDefinidas(
 export async function verificarConexaoRedis(): Promise<boolean> {
   try {
     const { error } = await useFetch<UpstashResponse<string>>(
-      `${process.env.UPSTASH_REDIS_REST_URL}/ping`,
+      `${runtimeConfig.upstashRedisRestUrl}/ping`,
       {
         key: "redis-ping-check",
         server: false,
         default: () => ({ result: "PONG" }),
         headers: {
-          Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}`,
+          Authorization: `Bearer ${runtimeConfig.upstashRedisRestToken}`,
         },
       },
     );
