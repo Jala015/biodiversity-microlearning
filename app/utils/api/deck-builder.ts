@@ -17,36 +17,22 @@ import type { Card, NivelDificuldade } from "~/stores/decks";
 //----------------------------//
 
 /**
- * Função para determinar nível de dificuldade baseado no max_id_level
+ * Função para determinar nível de dificuldade baseado na posição do ranking
+ * de frequência relativa para distribuição homogênea
  *
  * Chamada por: construirCards() - para definir o nível de dificuldade dos Cards criados
  */
-function determinarNivelDificuldade(
-  maxIdLevel: string,
-  count: number,
-  total: number,
+function determinarNivelDificuldadePorRanking(
+  posicaoRanking: number,
+  totalCards: number,
 ): NivelDificuldade {
-  // frequência relativa
-  let nivel = 1 - count / total; // de 0 a 1
+  const quartil = posicaoRanking / totalCards;
 
-  // // espécies pouco avistadas têm penalidade no nível
-  // if (count == 1) {
-  //   nivel += 0.03;
-  // } else if (count < 5) {
-  //   nivel += 0.02;
-  // } else if (count < 10) {
-  //   nivel += 0.01;
-  // } else if (count < 20) {
-  //   nivel += 0.005;
-  // }
-
-  console.log("calculo do nível: ", nivel);
-
-  if (nivel < 0.25) {
+  if (quartil <= 0.25) {
     return "facil";
-  } else if (nivel < 0.5) {
+  } else if (quartil <= 0.5) {
     return "medio";
-  } else if (nivel < 0.75) {
+  } else if (quartil <= 0.75) {
     return "dificil";
   } else {
     return "desafio";
@@ -235,17 +221,33 @@ async function construirCards(
 ): Promise<Card[]> {
   console.log("🃏 FASE 3: Construindo cards...");
 
+  // 3.1 Converter grupos para array e ordenar por frequência relativa (mais comum primeiro)
+  const gruposOrdenados = Array.from(gruposTaxon.entries())
+    .slice(0, maxSpecies) // Limitar ao número máximo de cards
+    .sort(([, a], [, b]) => {
+      const freqA = a.countTotal / total;
+      const freqB = b.countTotal / total;
+      return freqB - freqA; // Ordem decrescente (mais comum primeiro)
+    });
+
+  console.log("📊 Distribuição por frequência relativa:");
+  gruposOrdenados.forEach(([taxonKey, grupo], index) => {
+    const freq = ((grupo.countTotal / total) * 100).toFixed(2);
+    console.log(
+      `${index + 1}. ${grupo.dados.nome_cientifico} - ${freq}% (${grupo.countTotal}/${total})`,
+    );
+  });
+
   const cards: Card[] = [];
   let cardsProcessados = 0;
 
-  for (const [taxonKey, grupo] of gruposTaxon) {
-    if (cardsProcessados >= maxSpecies) break;
-
+  for (let i = 0; i < gruposOrdenados.length; i++) {
+    const [taxonKey, grupo] = gruposOrdenados[i];
     const { especiesRepresentativa, dados, maxIdLevel, countTotal, especies } =
       grupo;
 
     try {
-      // 3.1 Obter imagem (Redis primeiro, senão iNat)
+      // 3.2 Obter imagem (Redis primeiro, senão iNat)
       let mediaFinal: MediaEspecie = dados.foto!;
       const imagemCurada = await obterImagemCurada(especiesRepresentativa);
       if (imagemCurada) {
@@ -257,10 +259,13 @@ async function construirCards(
         };
       }
 
-      // 3.2 Determinar nível de dificuldade
-      const nivel = determinarNivelDificuldade(maxIdLevel, countTotal, total);
+      // 3.3 Determinar nível de dificuldade baseado na posição no ranking
+      const nivel = determinarNivelDificuldadePorRanking(
+        i + 1,
+        gruposOrdenados.length,
+      );
 
-      // 3.3 Gerar alternativas incorretas
+      // 3.4 Gerar alternativas incorretas
       const alternativasIncorretas = await gerarAlternativasIncorretas(
         dados.taxon,
         dados.nomePopularPt,
@@ -268,7 +273,7 @@ async function construirCards(
         gruposTaxon,
       );
 
-      // 3.4 Determinar nome do táxon para o card
+      // 3.5 Determinar nome do táxon para o card
       let taxonNome: string;
       switch (maxIdLevel.toLowerCase()) {
         case "species":
@@ -282,7 +287,7 @@ async function construirCards(
           break;
       }
 
-      // 3.5 Criar card
+      // 3.6 Criar card
       const card: Card = {
         id: `${dados.inatId}-${Date.now()}-${cardsProcessados}`,
         taxon: taxonNome,
@@ -307,8 +312,9 @@ async function construirCards(
           ? ` (agrupando ${especies.length} espécies: ${especies.join(", ")})`
           : "";
 
+      const frequenciaRelativa = ((countTotal / total) * 100).toFixed(2);
       console.log(
-        `✓ Card criado para ${taxonNome} (${dados.nomePopularPt || "sem nome popular"}) - Nível: ${nivel}${especiesInfo}`,
+        `✓ Card criado para ${taxonNome} (${dados.nomePopularPt || "sem nome popular"}) - Nível: ${nivel} - Freq: ${frequenciaRelativa}% (ranking: ${i + 1}/${gruposOrdenados.length})${especiesInfo}`,
       );
     } catch (error) {
       console.error(
@@ -318,6 +324,21 @@ async function construirCards(
       continue;
     }
   }
+
+  // Log da distribuição final por nível
+  const distribuicao = cards.reduce(
+    (acc, card) => {
+      acc[card.nivel] = (acc[card.nivel] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
+
+  console.log("📊 Distribuição final por nível:");
+  console.log(`Fácil: ${distribuicao.facil || 0} cards`);
+  console.log(`Médio: ${distribuicao.medio || 0} cards`);
+  console.log(`Difícil: ${distribuicao.dificil || 0} cards`);
+  console.log(`Desafio: ${distribuicao.desafio || 0} cards`);
 
   console.log(`✅ Total: ${cardsProcessados} cards criados`);
   return cards;
