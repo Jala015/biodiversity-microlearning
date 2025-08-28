@@ -320,6 +320,7 @@ export async function obterTaxonsPrimos(
       console.log(
         `✓ Encontrados ${primosOrdenados.length} primos do táxon ${tio.name}`,
       );
+      iterator_limiter++;
     }
 
     // Se não encontramos primos, retornar os tios como fallback
