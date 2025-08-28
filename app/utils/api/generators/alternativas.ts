@@ -322,5 +322,29 @@ export async function gerarAlternativasIncorretas(
     `✅ Geradas ${resultado.length} alternativas para ${correctTaxon.name}: ${resultado.map((a) => a.nome_cientifico).join(", ")}`,
   );
 
+  // se o correctTaxon tiver nome popular, garantir que alternativas também tenham
+  if (
+    correctTaxon.preferred_common_name &&
+    resultado.some((a) => !a.nome_popular)
+  ) {
+    // lista de alternativas que ja tem nome popular
+    let temNomePopular = resultado.filter((a) => a.nome_popular);
+    resultado.forEach((a) => {
+      if (!a.nome_popular) {
+        if (temNomePopular?.length > 0) {
+          //sortear entre o nome popular da alternativa e o nome popular do correctTaxon
+          a.nome_popular =
+            Math.random() < 0.5
+              ? correctTaxon.preferred_common_name
+              : (temNomePopular?.pop()?.nome_popular ??
+                correctTaxon.preferred_common_name);
+        } else {
+          // usar o nome popular do correctTaxon
+          a.nome_popular = correctTaxon.preferred_common_name;
+        }
+      }
+    });
+  }
+
   return resultado;
 }

@@ -64,24 +64,33 @@ export async function obterMaxIdLevel(
       >(`${process.env.UPSTASH_REDIS_REST_URL}/get/${redisKey}`, {
         key: `redis-maxid-${ancestorId}`,
         server: false,
-        default: () => ({ result: "species" }),
+        default: () => ({ result: null }),
         headers: {
           Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}`,
         },
       });
+
+      // Verificar se encontrou um valor válido no Redis (não nulo)
       if (
         !error.value &&
         response.value &&
         response.value.result !== null &&
-        response.value.result != undefined
+        response.value.result !== undefined &&
+        response.value.result !== ""
       ) {
-        console.info(`Consulta redis para ${ancestorId} funcionou`);
-        maxLevel = response.value?.result || maxLevel;
+        console.info(
+          `✅ Encontrado maxId no Redis para ancestorId ${ancestorId}: ${response.value.result}`,
+        );
+        maxLevel = response.value.result;
         break;
+      } else {
+        console.info(
+          `❌ Nenhum maxId encontrado no Redis para ancestorId ${ancestorId}`,
+        );
       }
     } catch (error) {
       console.error(
-        `Não encontramos maxid no redis para ${ancestorId}: ${error}`,
+        `Erro ao consultar Redis para ancestorId ${ancestorId}: ${error}`,
       );
       continue;
     }
