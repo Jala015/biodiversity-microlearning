@@ -121,7 +121,7 @@ export async function obterTaxonsIrmaos(
     // Usar ancestor_ids para buscar táxons do mesmo grupo taxonômico
     const last_ancestor_id =
       correctTaxon.ancestor_ids[correctTaxon.ancestor_ids.length - 1];
-    const inatUrl = `https://api.inaturalist.org/v1/taxa/${last_ancestor_id}&locale=pt-BR`;
+    const inatUrl = `https://api.inaturalist.org/v1/taxa/${last_ancestor_id}?locale=pt-BR`;
 
     console.log(
       `ℹ️ Buscando táxons irmãos para ${correctTaxon.name} usando ancestor_ids. URL: ${inatUrl}`,
@@ -176,6 +176,88 @@ export async function obterTaxonsIrmaos(
   } catch (error) {
     console.error(
       `❌ Erro ao buscar táxons irmãos para ${correctTaxon.name}:`,
+      error,
+    );
+    return [];
+  }
+}
+
+/**
+ * Gera uma lista de táxons primos (netos do mesmo avô taxonômico) para um táxon correto
+ * Usa ancestor_ids do iNaturalist para buscar um nível acima dos irmãos
+ *
+ * Chamada por: gerarAlternativasIncorretas() em alternativas.ts - como fallback quando obterTaxonsIrmaos falha
+ */
+export async function obterTaxonsPrimos(
+  correctTaxon: INatTaxon,
+  count: number = 5,
+): Promise<INatChildren[]> {
+  if (!correctTaxon.ancestor_ids || correctTaxon.ancestor_ids.length < 2) {
+    console.warn(
+      `Táxon ${correctTaxon.name} não possui ancestor_ids suficientes para buscar primos.`,
+    );
+    return [];
+  }
+
+  try {
+    // Usar o penúltimo ancestor_id (avô) em vez do último (pai)
+    const granparent_id =
+      correctTaxon.ancestor_ids[correctTaxon.ancestor_ids.length - 2];
+    const inatUrl = `https://api.inaturalist.org/v1/taxa/${granparent_id}?locale=pt-BR`;
+
+    console.log(
+      `ℹ️ Buscando táxons primos para ${correctTaxon.name} usando avô taxonômico. URL: ${inatUrl}`,
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 1001)); // Adiciona um delay de 1001ms
+
+    const { data: inatResp, error } = await useFetch<INatTaxaResponse>(
+      inatUrl,
+      {
+        key: `inat-taxa-grandparent-${granparent_id}`,
+        server: false,
+        default: () => ({
+          results: [],
+          total_results: 0,
+          page: 1,
+          per_page: 0,
+        }),
+      },
+    );
+
+    if (error.value) {
+      console.error(
+        `❌ Erro ao buscar táxons primos para ${correctTaxon.name} na URL ${inatUrl}:`,
+        error,
+      );
+      return [];
+    }
+
+    if (
+      !inatResp.value ||
+      !inatResp.value.results ||
+      !inatResp.value.results[0] ||
+      !inatResp.value.results[0].children
+    ) {
+      return [];
+    }
+
+    const avô = inatResp.value.results[0];
+
+    // Buscar "tios" (children do avô) como primos taxonômicos
+    // Excluir o pai do táxon correto para evitar duplicação com irmãos
+    const candidatos = avô.children.filter(
+      (tio) => tio.id !== correctTaxon.parent_id && tio.id !== correctTaxon.id,
+    );
+
+    const ordenados = candidatos.sort(
+      (a, b) => b.complete_species_count - a.complete_species_count,
+    );
+
+    return ordenados.slice(0, count);
+  } catch (error) {
+    console.error(
+      `❌ Erro ao buscar táxons primos para ${correctTaxon.name}:`,
       error,
     );
     return [];

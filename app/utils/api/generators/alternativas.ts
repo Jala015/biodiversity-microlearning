@@ -1,6 +1,7 @@
 import type { INatTaxon, Especie } from "../types";
 import {
   obterTaxonsIrmaos,
+  obterTaxonsPrimos,
   obterEspeciesAleatorias,
 } from "../sources/inaturalist";
 import { obterAlternativasPreDefinidas } from "~/utils/redis";
@@ -185,7 +186,31 @@ export async function gerarAlternativasIncorretas(
     }
   }
 
-  // 4. ESTRATÉGIAS ESPECÍFICAS PARA NÍVEL DE ESPÉCIE (apenas se ainda faltarem alternativas)
+  // 4. QUARTA PRIORIDADE: Se obterTaxonsIrmaos falhou ou não tiver 3 alternativas, usar obterTaxonsPrimos()
+  if (alternativas.length < 3) {
+    console.log(
+      `⚡ Faltam ${3 - alternativas.length} alternativas, usando obterTaxonsPrimos()...`,
+    );
+
+    try {
+      const taxonsPrimos = await obterTaxonsPrimos(correctTaxon, 5);
+      for (const primo of taxonsPrimos) {
+        if (alternativas.length >= 3) break;
+        const key = `${primo.name}|${primo.preferred_common_name || ""}`;
+        if (!alternativasUsadas.has(key)) {
+          alternativas.push({
+            nome_cientifico: primo.name,
+            nome_popular: primo.preferred_common_name,
+          });
+          alternativasUsadas.add(key);
+        }
+      }
+    } catch (error) {
+      console.error(`Erro ao buscar táxons primos:`, error);
+    }
+  }
+
+  // 5. ESTRATÉGIAS ESPECÍFICAS PARA NÍVEL DE ESPÉCIE (apenas se ainda faltarem alternativas)
   if (alternativas.length < 3 && nivelTaxonomicoMaximo === "species") {
     const faltam = 3 - alternativas.length;
     console.log(
@@ -252,7 +277,7 @@ export async function gerarAlternativasIncorretas(
     }
   }
 
-  // 5. FALLBACK FINAL: Se ainda não conseguimos 3 alternativas, completar com espécies aleatórias
+  // 6. FALLBACK FINAL: Se ainda não conseguimos 3 alternativas, completar com espécies aleatórias
   if (alternativas.length < 3) {
     console.warn(
       `⚠️ Apenas ${alternativas.length} alternativas geradas, completando com espécies aleatórias...`,
