@@ -8,6 +8,7 @@ import type { Especie } from "~/utils/api/types";
 export interface Card {
   id: string;
   taxon: string;
+  nomePopular?: string;
   nivel: "facil" | "medio" | "dificil" | "desafio";
   cooldown: number;
   lastSeenAt: number;

@@ -291,15 +291,16 @@ async function construirCards(
       const card: Card = {
         id: `${dados.inatId}-${Date.now()}-${cardsProcessados}`,
         taxon: taxonNome,
+        nomePopular: dados.nomePopularPt,
         nivel: nivel,
         cooldown:
           nivel === "facil"
-            ? 1
+            ? 4
             : nivel === "medio"
-              ? 2
+              ? 3
               : nivel === "dificil"
-                ? 3
-                : 4,
+                ? 2
+                : 1,
         lastSeenAt: 0,
         alternativas_erradas: alternativasIncorretas,
       };

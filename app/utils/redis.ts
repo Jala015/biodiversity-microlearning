@@ -40,6 +40,7 @@ export async function obterImagemCurada(
 
 // Função para obter o máximo nível de taxonomia identificável para um determinado ID de iNaturalist
 export async function obterMaxIdLevel(
+  // FIXME
   dados: ConsultaINatResult,
 ): Promise<string> {
   let maxLevel = "species";

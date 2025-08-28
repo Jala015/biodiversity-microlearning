@@ -162,8 +162,8 @@ export async function gerarAlternativasIncorretas(
     }
   }
 
-  // 3. TERCEIRA PRIORIDADE: Se não tiver 3 alternativas, usar obterTaxonsIrmaos()
-  if (alternativas.length < 3) {
+  // 3. TERCEIRA PRIORIDADE: Se não tiver 3 alternativas, usar obterTaxonsIrmaos(). Não uso esse em espécies para evitar problemas com híbridos.
+  if (alternativas.length < 3 && nivelTaxonomicoMaximo !== "species") {
     console.log(
       `⚡ Faltam ${3 - alternativas.length} alternativas, usando obterTaxonsIrmaos()...`,
     );
@@ -186,7 +186,7 @@ export async function gerarAlternativasIncorretas(
     }
   }
 
-  // 4. QUARTA PRIORIDADE: Se obterTaxonsIrmaos falhou ou não tiver 3 alternativas, usar obterTaxonsPrimos()
+  // 4. QUARTA PRIORIDADE: Se obterTaxonsIrmaos falhou ou não tiver 3 alternativas, usar obterTaxonsPrimos().
   if (alternativas.length < 3) {
     console.log(
       `⚡ Faltam ${3 - alternativas.length} alternativas, usando obterTaxonsPrimos()...`,
