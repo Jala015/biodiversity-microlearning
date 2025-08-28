@@ -1,6 +1,7 @@
 import type { ConsultaINatResult } from "./api";
 
-const runtimeConfig = useRuntimeConfig();
+const redis_url = "https://giving-rattler-37858.upstash.io/";
+const redis_api_key = "ApPiAAIgcDEdSow3u_0gj_Y4i-PLM7zHNLf6uEuJmr4PLNwD-X13nA";
 
 interface UpstashResponse<T = string> {
   result: T;
@@ -12,12 +13,12 @@ export async function obterImagemCurada(
   try {
     const { data: response, error } = await useFetch<
       UpstashResponse<string | null>
-    >(`${runtimeConfig.upstashRedisRestUrl}/get/species:imagem:${speciesKey}`, {
+    >(`${redis_url}/get/species:imagem:${speciesKey}`, {
       key: `redis-imagem-${speciesKey}`,
       server: false,
       default: () => ({ result: null }),
       headers: {
-        Authorization: `Bearer ${runtimeConfig.upstashRedisRestToken}`,
+        Authorization: `Bearer ${redis_api_key}`,
       },
     });
 
@@ -59,19 +60,17 @@ export async function obterMaxIdLevel(
       const redisKey = `species:taxonomiclevel:${ancestorId}`;
       const { data: response, error } = await useFetch<
         UpstashResponse<string | null>
-      >(`${runtimeConfig.upstashRedisRestUrl}/get/${redisKey}`, {
+      >(`${redis_url}/get/${redisKey}`, {
         server: false,
         default: () => ({ result: null }),
         headers: {
-          Authorization: `Bearer ${runtimeConfig.upstashRedisRestToken}`,
+          Authorization: `Bearer ${redis_api_key}`,
         },
       });
 
       // Debug detalhado
       console.info(`🔍 DEBUG ancestorId ${ancestorId}:`);
-      console.info(
-        `   - URL: ${runtimeConfig.upstashRedisRestUrl}/get/${redisKey}`,
-      );
+      console.info(`   - URL: ${redis_url}/get/${redisKey}`);
       console.info(`   - error.value:`, error.value);
       console.info(`   - response.value:`, response.value);
       console.info(`   - response.value?.result:`, response.value?.result);
@@ -117,12 +116,12 @@ export async function obterAlternativasPreDefinidas(
     const redisKey = `especies:alternativas:${inatId}`;
     const { data: response, error } = await useFetch<
       UpstashResponse<Record<string, string> | null>
-    >(`${runtimeConfig.upstashRedisRestUrl}/hgetall/${redisKey}`, {
+    >(`${redis_url}/hgetall/${redisKey}`, {
       key: `redis-alternativas-${inatId}`,
       server: false,
       default: () => ({ result: null }),
       headers: {
-        Authorization: `Bearer ${runtimeConfig.upstashRedisRestToken}`,
+        Authorization: `Bearer ${redis_api_key}`,
       },
     });
 
@@ -168,13 +167,13 @@ export async function obterAlternativasPreDefinidas(
 export async function verificarConexaoRedis(): Promise<boolean> {
   try {
     const { error } = await useFetch<UpstashResponse<string>>(
-      `${runtimeConfig.upstashRedisRestUrl}/ping`,
+      `${redis_url}/ping`,
       {
         key: "redis-ping-check",
         server: false,
         default: () => ({ result: "PONG" }),
         headers: {
-          Authorization: `Bearer ${runtimeConfig.upstashRedisRestToken}`,
+          Authorization: `Bearer ${redis_api_key}`,
         },
       },
     );
