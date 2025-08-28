@@ -68,7 +68,7 @@ export async function obterMaxIdLevel(
           Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}`,
         },
       });
-      if (!error.value) {
+      if (!error.value && response.value && response.value !== undefined) {
         console.info(
           `Consulta redis para ${ancestorId} funcionou: ${response.value?.result}`,
         );
@@ -76,7 +76,9 @@ export async function obterMaxIdLevel(
         break;
       }
     } catch (error) {
-      console.error(`Erro ao consultar redis para ${ancestorId}: ${error}`);
+      console.error(
+        `Não encontramos maxid no redis para ${ancestorId}: ${error}`,
+      );
       continue;
     }
   }
