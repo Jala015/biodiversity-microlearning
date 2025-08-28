@@ -68,10 +68,13 @@ export async function obterMaxIdLevel(
           Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}`,
         },
       });
-      if (!error.value && response.value && response.value !== undefined) {
-        console.info(
-          `Consulta redis para ${ancestorId} funcionou: ${response.value?.result}`,
-        );
+      if (
+        !error.value &&
+        response.value &&
+        response.value.result !== null &&
+        response.value.result != undefined
+      ) {
+        console.info(`Consulta redis para ${ancestorId} funcionou`);
         maxLevel = response.value?.result || maxLevel;
         break;
       }
