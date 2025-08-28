@@ -1,4 +1,3 @@
-import { obterImagemCurada, obterMaxIdLevel } from "~/utils/redis";
 import type {
   INatTaxaResponse,
   INatTaxon,

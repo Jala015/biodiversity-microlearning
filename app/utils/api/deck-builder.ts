@@ -27,7 +27,7 @@ function determinarNivelDificuldade(
   total: number,
 ): NivelDificuldade {
   // frequência relativa
-  let nivel = (1 - count / total) / 2; // de 0 a 0,5
+  let nivel = 1 - count / total; // de 0 a 1
 
   // espécies pouco avistadas têm penalidade no nível
   if (count == 1) {
@@ -168,7 +168,7 @@ async function processarEAgrupar(
 
   for (const [speciesKey, dados] of dadosINat) {
     if (dados.foto) {
-      const max_id_level = await obterMaxIdLevel(dados.inatId);
+      const max_id_level = await obterMaxIdLevel(dados);
       speciesComMaxId.set(speciesKey, {
         dados,
         maxIdLevel: max_id_level || "species",
