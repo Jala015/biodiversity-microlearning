@@ -5,7 +5,7 @@ import type {
   MediaEspecie,
   ConsultaINatResult,
   Especie,
-} from "./types";
+} from "../types";
 
 //----------------------------//
 //                            //

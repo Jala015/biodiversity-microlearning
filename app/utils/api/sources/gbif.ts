@@ -2,7 +2,7 @@ import type {
   SearchOptions,
   GbifOccResponse,
   GbifSpeciesResponse,
-} from "./types";
+} from "../types";
 
 //----------------------------//
 //                            //
@@ -81,27 +81,18 @@ export async function obterEspeciesMaisComuns(opcoes: SearchOptions): Promise<{
     const speciesResults = [];
     for (let i = 0; i < speciesKeys.length; i++) {
       const speciesKey = speciesKeys[i];
+      if (!speciesKey) continue;
       try {
         const speciesUrl = `/api/gbif/species/${speciesKey}`;
-        const { data: speciesData } = await useFetch<GbifSpeciesResponse>(
-          speciesUrl,
-          {
-            key: `gbif-species-${speciesKey}`,
-            server: false,
-            default: () => ({
-              canonicalName: "",
-              kingdom: "",
-              phylum: "",
-              class: "",
-              order: "",
-              family: "",
-              genus: "",
-            }),
-          },
-        );
+        const { data: speciesData } = await useFetch<any>(speciesUrl, {
+          key: `gbif-species-${speciesKey}`,
+          server: false,
+          default: () => ({}),
+        });
         speciesResults.push({
-          speciesKey,
+          key: parseInt(speciesKey) || 0,
           scientificName: speciesData.value?.canonicalName || "",
+          canonicalName: speciesData.value?.canonicalName || "",
           reino: speciesData.value?.kingdom || "",
           filo: speciesData.value?.phylum || "",
           classe: speciesData.value?.class || "",
@@ -116,7 +107,17 @@ export async function obterEspeciesMaisComuns(opcoes: SearchOptions): Promise<{
         }
       } catch (error) {
         console.warn(`⚠️ Erro ao buscar espécie ${speciesKey}:`, error);
-        speciesResults.push({ speciesKey, scientificName: "" });
+        speciesResults.push({
+          key: parseInt(speciesKey || "0") || 0,
+          scientificName: "",
+          canonicalName: "",
+          reino: "",
+          filo: "",
+          classe: "",
+          ordem: "",
+          familia: "",
+          genero: "",
+        });
       }
     }
 
@@ -128,8 +129,8 @@ export async function obterEspeciesMaisComuns(opcoes: SearchOptions): Promise<{
 
     // Montar um map com os respectivos counts usando scientificName
     const speciesCounts = new Map<string, number>();
-    response.value.facets?.[0]?.counts.forEach((count) => {
-      const species = validSpecies.find((s) => s.speciesKey === count.name);
+    response.value.facets?.[0]?.counts.forEach((count: any) => {
+      const species = validSpecies.find((s) => s.key.toString() === count.name);
       if (species?.scientificName) {
         speciesCounts.set(species.scientificName, count.count);
       }

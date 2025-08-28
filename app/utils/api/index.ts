@@ -28,13 +28,13 @@ export {
   consultarApiINat,
   obterTaxonsIrmaos,
   obterEspeciesAleatorias,
-} from "./inaturalist";
+} from "./sources/inaturalist";
 
 // Funções do GBIF
-export { obterEspeciesMaisComuns } from "./gbif";
+export { obterEspeciesMaisComuns } from "./sources/gbif";
 
 // Geração de alternativas
-export { gerarAlternativasIncorretas } from "./alternativas";
+export { gerarAlternativasIncorretas } from "./generators/alternativas";
 
 // Construção de decks
 export {

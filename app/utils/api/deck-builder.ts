@@ -1,7 +1,7 @@
 import { obterImagemCurada, obterMaxIdLevel } from "~/utils/redis";
-import { consultarApiINat } from "./inaturalist";
-import { obterEspeciesMaisComuns } from "./gbif";
-import { gerarAlternativasIncorretas } from "./alternativas";
+import { consultarApiINat } from "./sources/inaturalist";
+import { obterEspeciesMaisComuns } from "./sources/gbif";
+import { gerarAlternativasIncorretas } from "./generators/alternativas";
 import type {
   EspecieComDados,
   MediaEspecie,
@@ -18,12 +18,12 @@ import type { Card, NivelDificuldade } from "~/stores/decks";
 /**
  * Função para determinar nível de dificuldade baseado no max_id_level
  *
- * Chamada por: montarCardsComAlternativas() - para definir o nível de dificuldade dos Cards criados
+ * Chamada por: construirCards() - para definir o nível de dificuldade dos Cards criados
  */
 function determinarNivelDificuldade(
   maxIdLevel: string,
-  count: number, //numero de obs para esse taxon
-  total: number, //numero total de observações
+  count: number,
+  total: number,
 ): NivelDificuldade {
   // frequência relativa
   let nivel = (1 - count / total) / 2; // de 0 a 0,5
@@ -65,34 +65,41 @@ function determinarNivelDificuldade(
   }
 }
 
-/**
- * Obter fotos, nome científico, nome popular e montar Cards completos com alternativas
- *
- * Chamada por: criarDeckAutomatico() - função principal que cria deck automático baseado em região geográfica
- */
-export async function montarCardsComAlternativas(
-  scientificNames: string[],
-  maxSpecies: number,
-  counts: Map<string, number>,
-): Promise<Card[]> {
-  console.log(`🔍 Processando ${scientificNames.length} espécies...`);
+// ========================================
+// FUNÇÕES GUARDA-CHUVA DO PIPELINE
+// ========================================
 
-  //obter o total de observações
-  let total = 0;
-  counts.forEach((v) => {
-    total += v;
+/**
+ * FASE 1: Coleta dados das espécies (GBIF + iNaturalist)
+ */
+async function coletarDados(
+  circleData: { lat: number; lng: number; radiusKm: number },
+  maxSpecies: number,
+  taxonKeys?: number[],
+) {
+  console.log("🌍 FASE 1: Coletando dados das espécies...");
+
+  // 1.1 Buscar espécies mais comuns no GBIF
+  const dadosGBIF = await obterEspeciesMaisComuns({
+    lat: circleData.lat,
+    lng: circleData.lng,
+    radiusKm: circleData.radiusKm,
+    maxSpecies,
+    taxonKeys,
   });
 
-  const cards: Card[] = [];
+  if (dadosGBIF.nomes_cientificos.length === 0) {
+    throw new Error("Nenhuma espécie encontrada na região especificada");
+  }
 
-  // Primeiro: buscar todos os dados no iNaturalist
+  // 1.2 Enriquecer com dados do iNaturalist
   console.log(`🔍 Buscando dados no iNaturalist...`);
   const dadosINat = new Map<string, ConsultaINatResult>();
 
-  // Buscar dados do iNaturalist para todas as espécies usando GBIF species name
-  const speciesSlice = scientificNames.slice(0, maxSpecies * 2);
+  const speciesSlice = dadosGBIF.nomes_cientificos.slice(0, maxSpecies * 2);
   for (let i = 0; i < speciesSlice.length; i++) {
     const n = speciesSlice[i];
+    if (!n) continue;
     try {
       const resultadoINat = await consultarApiINat(n);
       if (resultadoINat) {
@@ -111,7 +118,26 @@ export async function montarCardsComAlternativas(
 
   console.log(`📊 ${dadosINat.size} espécies encontradas no iNaturalist`);
 
-  // Segundo: buscar max_id_level para todas as espécies
+  return {
+    dadosGBIF,
+    dadosINat,
+    total: Array.from(dadosGBIF.speciesCounts.values()).reduce(
+      (a, b) => a + b,
+      0,
+    ),
+  };
+}
+
+/**
+ * FASE 2: Processa e agrupa táxons por nível taxonômico
+ */
+async function processarEAgrupar(
+  dadosINat: Map<string, ConsultaINatResult>,
+  counts: Map<string, number>,
+) {
+  console.log("📋 FASE 2: Processando e agrupando táxons...");
+
+  // 2.1 Buscar max_id_level para todas as espécies
   console.log(`🔍 Buscando max_id_level...`);
   const speciesComMaxId = new Map<
     string,
@@ -128,8 +154,8 @@ export async function montarCardsComAlternativas(
     }
   }
 
-  // Terceiro: agrupar espécies por táxon no nível do max_id_level
-  console.log(`📋 Agrupando espécies por max_id_level...`);
+  // 2.2 Agrupar espécies por táxon no nível do max_id_level
+  console.log(`📊 Agrupando por nível taxonômico...`);
   const gruposTaxon = new Map<
     string,
     {
@@ -142,24 +168,20 @@ export async function montarCardsComAlternativas(
   >();
 
   for (const [speciesKey, { dados, maxIdLevel }] of speciesComMaxId) {
-    // Determinar o nome do táxon no nível correto
+    // Determinar chave do táxon
     let taxonKey: string;
-
     switch (maxIdLevel.toLowerCase()) {
       case "species":
         taxonKey = `species:${dados.nome_cientifico}`;
         break;
       case "genus":
-        // Extrair gênero do nome científico
-        const genero = dados.nome_cientifico.split(" ")[0];
+        const genero = dados.nome_cientifico.split(" ")[0] || "";
         taxonKey = `genus:${genero}`;
         break;
       case "family":
-        // Para família, usamos o próprio ID do iNat como referência
         taxonKey = `family:${dados.taxon.parent_id || dados.inatId}`;
         break;
       default:
-        // Para níveis superiores, usar o próprio ID
         taxonKey = `${maxIdLevel}:${dados.inatId}`;
         break;
     }
@@ -182,9 +204,31 @@ export async function montarCardsComAlternativas(
   }
 
   console.log(`📊 ${gruposTaxon.size} grupos taxonômicos únicos criados`);
+  return gruposTaxon;
+}
 
-  // Quarto: criar cards para cada grupo taxonômico
+/**
+ * FASE 3: Constrói os cards finais com alternativas e imagens
+ */
+async function construirCards(
+  gruposTaxon: Map<
+    string,
+    {
+      especiesRepresentativa: string;
+      dados: ConsultaINatResult;
+      maxIdLevel: string;
+      countTotal: number;
+      especies: string[];
+    }
+  >,
+  maxSpecies: number,
+  total: number,
+): Promise<Card[]> {
+  console.log("🃏 FASE 3: Construindo cards...");
+
+  const cards: Card[] = [];
   let cardsProcessados = 0;
+
   for (const [taxonKey, grupo] of gruposTaxon) {
     if (cardsProcessados >= maxSpecies) break;
 
@@ -192,10 +236,8 @@ export async function montarCardsComAlternativas(
       grupo;
 
     try {
-      // Verificar se existe imagem curada para a espécie representativa
+      // 3.1 Obter imagem (Redis primeiro, senão iNat)
       let mediaFinal: MediaEspecie = dados.foto!;
-      let fonteImagem = "iNaturalist";
-
       const imagemCurada = await obterImagemCurada(especiesRepresentativa);
       if (imagemCurada) {
         mediaFinal = {
@@ -204,20 +246,19 @@ export async function montarCardsComAlternativas(
           license: "Curada",
           rightsHolder: "Curadoria",
         };
-        fonteImagem = "curada";
       }
 
-      // Determinar nível de dificuldade usando count total do grupo
+      // 3.2 Determinar nível de dificuldade
       const nivel = determinarNivelDificuldade(maxIdLevel, countTotal, total);
 
-      // Gerar alternativas incorretas
+      // 3.3 Gerar alternativas incorretas
       const alternativasIncorretas = await gerarAlternativasIncorretas(
         dados.taxon,
         dados.nomePopularPt,
         maxIdLevel,
       );
 
-      // Determinar o nome do taxon para o card baseado no max_id_level
+      // 3.4 Determinar nome do táxon para o card
       let taxonNome: string;
       switch (maxIdLevel.toLowerCase()) {
         case "species":
@@ -231,9 +272,9 @@ export async function montarCardsComAlternativas(
           break;
       }
 
-      // Criar Card
+      // 3.5 Criar card
       const card: Card = {
-        id: `${dados.inatId}-${Date.now()}-${cardsProcessados}`, // ID único
+        id: `${dados.inatId}-${Date.now()}-${cardsProcessados}`,
         taxon: taxonNome,
         nivel: nivel,
         cooldown:
@@ -257,11 +298,11 @@ export async function montarCardsComAlternativas(
           : "";
 
       console.log(
-        `✓ Card criado para ${taxonNome} (${dados.nomePopularPt || "sem nome popular"}) - Nível: ${nivel}`,
+        `✓ Card criado para ${taxonNome} (${dados.nomePopularPt || "sem nome popular"}) - Nível: ${nivel}${especiesInfo}`,
       );
     } catch (error) {
       console.error(
-        `❌ Erro ao gerar alternativas para ${dados.nome_cientifico}:`,
+        `❌ Erro ao criar card para ${dados.nome_cientifico}:`,
         error,
       );
       continue;
@@ -271,6 +312,10 @@ export async function montarCardsComAlternativas(
   console.log(`✅ Total: ${cardsProcessados} cards criados`);
   return cards;
 }
+
+// ========================================
+// FUNÇÃO PRINCIPAL
+// ========================================
 
 /**
  * Função principal para criar um deck automático baseado em região geográfica
@@ -283,26 +328,23 @@ export async function criarDeckAutomatico(
   taxonKeys?: number[],
 ) {
   try {
-    // 1. Obter espécies mais comuns na região
-    const { nomes_cientificos, speciesCounts, validSpecies } =
-      await obterEspeciesMaisComuns({
-        lat: circleData.lat,
-        lng: circleData.lng,
-        radiusKm: circleData.radiusKm,
-        maxSpecies,
-        taxonKeys,
-      });
+    console.log("🎯 Iniciando criação de deck automático...");
 
-    if (nomes_cientificos.length === 0) {
-      throw new Error("Nenhuma espécie encontrada na região especificada");
-    }
-
-    // 2. Montar Cards com alternativas
-    const cards = await montarCardsComAlternativas(
-      nomes_cientificos,
+    // FASE 1: Coletar dados (GBIF + iNaturalist)
+    const { dadosGBIF, dadosINat, total } = await coletarDados(
+      circleData,
       maxSpecies,
-      speciesCounts,
+      taxonKeys,
     );
+
+    // FASE 2: Processar e agrupar táxons
+    const gruposTaxon = await processarEAgrupar(
+      dadosINat,
+      dadosGBIF.speciesCounts,
+    );
+
+    // FASE 3: Construir cards
+    const cards = await construirCards(gruposTaxon, maxSpecies, total);
 
     if (cards.length === 0) {
       throw new Error(
@@ -310,6 +352,7 @@ export async function criarDeckAutomatico(
       );
     }
 
+    console.log(`🎉 Deck criado com sucesso! ${cards.length} cards`);
     return {
       cards: cards,
       totalCards: cards.length,
@@ -318,4 +361,46 @@ export async function criarDeckAutomatico(
     console.error("❌ Erro ao criar deck automático:", error);
     throw error;
   }
+}
+
+/**
+ * Obter fotos, nome científico, nome popular e montar Cards completos com alternativas
+ *
+ * Chamada por: criarDeckAutomatico() - função principal que cria deck automático baseado em região geográfica
+ *
+ * @deprecated Use criarDeckAutomatico() instead. Mantida para compatibilidade.
+ */
+export async function montarCardsComAlternativas(
+  scientificNames: string[],
+  maxSpecies: number,
+  counts: Map<string, number>,
+): Promise<Card[]> {
+  console.warn(
+    "⚠️ montarCardsComAlternativas está deprecated. Use criarDeckAutomatico.",
+  );
+
+  // Implementação simplificada usando a nova estrutura
+  const dadosINat = new Map<string, ConsultaINatResult>();
+
+  // Buscar dados do iNaturalist
+  for (let i = 0; i < scientificNames.slice(0, maxSpecies * 2).length; i++) {
+    const n = scientificNames[i];
+    if (!n) continue;
+    try {
+      const resultadoINat = await consultarApiINat(n);
+      if (resultadoINat) {
+        dadosINat.set(n, resultadoINat);
+      }
+      if (i < scientificNames.length - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 1001));
+      }
+    } catch (error) {
+      console.error(`❌ Erro ao buscar dados iNaturalist para ${n}:`, error);
+      continue;
+    }
+  }
+
+  const total = Array.from(counts.values()).reduce((a, b) => a + b, 0);
+  const gruposTaxon = await processarEAgrupar(dadosINat, counts);
+  return await construirCards(gruposTaxon, maxSpecies, total);
 }

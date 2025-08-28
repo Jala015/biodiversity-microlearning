@@ -5,225 +5,49 @@ Este módulo contém todas as funções relacionadas à consulta de APIs externa
 ## 📁 Estrutura
 
 ```
-api/
+app/utils/api/
 ├── README.md           # Esta documentação
 ├── index.ts           # Exportações centralizadas
 ├── types.ts           # Tipos TypeScript compartilhados
-├── inaturalist.ts     # Funções do iNaturalist API
-├── gbif.ts            # Funções do GBIF API
-├── alternativas.ts    # Geração de alternativas incorretas (com cache Redis)
-└── deck-builder.ts    # Construção de decks automáticos com Cards
+├── deck-builder.ts     # Construção de decks automáticos
+├── sources/            # APIs externas
+│   ├── gbif.ts        # Funções do GBIF API
+│   └── inaturalist.ts # Funções do iNaturalist API
+└── generators/         # Geradores de conteúdo
+    └── alternativas.ts # Geração de alternativas
 ```
 
 ## 🔧 Módulos
 
 ### `types.ts`
+
 Contém todas as interfaces TypeScript usadas pelos outros módulos:
 - `INatTaxon` - Dados de um táxon do iNaturalist
 - `MediaEspecie` - Informações de mídia (fotos)
 - `EspecieComDados` - Espécie com dados completos para o deck
 - `Especie` - Tipo simplificado para alternativas de jogo
 
-### `inaturalist.ts`
+### `sources/gbif.ts`
+
+Funções para interação com a API do GBIF:
+- `obterEspeciesMaisComuns()` - Lista espécies mais registradas em uma região
+
+### `sources/inaturalist.ts`
+
 Funções para interação com a API do iNaturalist:
 - `consultarApiINat()` - Busca dados completos de uma espécie
 - `obterTaxonsIrmaos()` - Encontra táxons no mesmo nível taxonômico
 - `obterEspeciesAleatorias()` - Busca espécies aleatórias para distratores
 
-### `gbif.ts`
-Funções para interação com a API do GBIF:
-- `obterEspeciesMaisComuns()` - Lista espécies mais registradas em uma região
+### `generators/alternativas.ts`
 
-### `alternativas.ts`
 Lógica para geração de alternativas incorretas em flashcards com cache Redis:
 - `gerarAlternativasIncorretas()` - Cria 3 distratores, primeiro buscando no Redis, senão gera automaticamente
-- Cache Redis: `especies:alternativas:{inatID}` com hash contendo alternativas 1, 2, 3
 
 ### `deck-builder.ts`
+
 Funções de alto nível para construção de decks:
-- `montarCardsComAlternativas()` - **NOVA** - Processa espécies e cria Cards com alternativas prontas, agrupando por max_id_level para evitar repetições
-- `criarDeckAutomatico()` - **REFATORADA** - Pipeline completo retornando Cards prontos para `addCards()`
-
-## 📊 Fluxo de Dados
-
-```mermaid
----
-config:
-  layout: elk
----
-flowchart TB
-    START[("🌍 Circle Data<br>(lat, lng, radiusKm)")] --> CRIAR["🎯 criarDeckAutomatico()"]
-    CRIAR --> GBIF["🌐 obterEspeciesMaisComuns()"]
-    GBIF --> GBIF_API[("GBIF API")] & SPECIES_DATA[("📊 Nomes científicos e counts")]
-    GBIF_API --> GBIF
-    SPECIES_DATA --> MONTAR["🔧 montarCardsComAlternativas()"]
-    MONTAR --> CONSULTAR["🔍 consultarApiINat()"]
-    CONSULTAR --> INAT_API1[("iNaturalist API")] & INAT_DATA[("🐾 Taxon + Photo + Names")]
-    INAT_API1 --> CONSULTAR
-    INAT_DATA --> GET_LEVEL["🏷️ obterMaxIdLevel()"] & CARD_ASSEMBLY["🃏 Assemble Card"]
-    GET_LEVEL --> REDIS1[("Redis Cache")] & MAX_LEVEL[("📋 max_id_level")]
-    REDIS1 --> GET_LEVEL
-    MAX_LEVEL --> GRUPO["📂 Agrupadas por nivel taxonômico"]
-    GRUPO --> IMG_CURADA["🖼️ obterImagemCurada()"] & DIFICULDADE["⚡ determinarNivelDificuldade()"] & ALTERNATIVAS["🎲 gerarAlternativasIncorretas()"]
-    IMG_CURADA --> REDIS1[("Redis Cache")] & FINAL_IMG[("🖼️ Imagem Final")]
-    REDIS1 --> IMG_CURADA
-    DIFICULDADE --> NIVEL[("📈 Nível de dificuldade")]
-    ALTERNATIVAS --> PRE_DEF["📦 obterAlternativasPreDefinidas()"]
-    PRE_DEF --> REDIS1[("Redis Cache")] & CACHED{"✅ Encontrou no Cache?"}
-    REDIS1 --> PRE_DEF
-    CACHED -- Yes --> USE_CACHED[("✓ Usa Alternativas do Redis")]
-    CACHED -- No --> IRMAOS["👥 obterTaxonsIrmaos()"] & ALEATORIAS["🎯 obterEspeciesAleatorias()"]
-    IRMAOS --> INAT_API2[("iNaturalist API")] & WRONG_OPTIONS[("❌ Alternativas falsas")]
-    INAT_API2 --> IRMAOS
-    ALEATORIAS --> INAT_API3[("iNaturalist API")] & WRONG_OPTIONS
-    INAT_API3 --> ALEATORIAS
-    USE_CACHED --> WRONG_OPTIONS
-    NIVEL --> CARD_ASSEMBLY
-    FINAL_IMG --> CARD_ASSEMBLY
-    WRONG_OPTIONS --> CARD_ASSEMBLY
-    CARD_ASSEMBLY --> CARDS[("🎴 Array final de cards")]
-    CARDS --> DECK_RESULT[("🎯 Objeto de Deck<br>{cards, totalCards}")]
-     START:::inputData
-     CRIAR:::process
-     GBIF:::process
-     GBIF_API:::apiCall
-     SPECIES_DATA:::dataOutput
-     MONTAR:::process
-     CONSULTAR:::process
-     INAT_API1:::apiCall
-     INAT_DATA:::dataOutput
-     GET_LEVEL:::process
-     CARD_ASSEMBLY:::process
-     REDIS1:::redisCall
-     MAX_LEVEL:::dataOutput
-     GRUPO:::process
-     IMG_CURADA:::process
-     DIFICULDADE:::process
-     ALTERNATIVAS:::process
-     REDIS1:::redisCall
-     FINAL_IMG:::dataOutput
-     NIVEL:::dataOutput
-     PRE_DEF:::process
-     REDIS1:::redisCall
-     CACHED:::decision
-     USE_CACHED:::dataOutput
-     IRMAOS:::process
-     ALEATORIAS:::process
-     INAT_API2:::apiCall
-     WRONG_OPTIONS:::dataOutput
-     INAT_API3:::apiCall
-     CARDS:::dataOutput
-     DECK_RESULT:::dataOutput
-    classDef apiCall fill:#ffcccc,stroke:#ff0000,stroke-width:2px
-    classDef redisCall fill:#e6ccff,stroke:#9900cc,stroke-width:2px
-    classDef dataOutput fill:#ccffcc,stroke:#00aa00,stroke-width:2px
-    classDef inputData fill:#cce6ff,stroke:#0066cc,stroke-width:2px
-    classDef process fill:#ffe6cc,stroke:#cc6600,stroke-width:2px
-    classDef decision fill:#fff2cc,stroke:#ccaa00,stroke-width:2px
-    style START stroke-width:4px,stroke-dasharray: 0
-    style GRUPO stroke-width:4px,stroke-dasharray: 0
-    style DECK_RESULT stroke-width:4px,stroke-dasharray: 0
-    linkStyle 0 stroke:#0066cc,stroke-width:3px,fill:none
-    linkStyle 1 stroke:#000000,stroke-width:3px,fill:none
-    linkStyle 2 stroke:#ff0000,stroke-width:3px,fill:none
-    linkStyle 3 stroke:#0066cc,stroke-width:3px,fill:none
-    linkStyle 4 stroke:#00aa00,stroke-width:3px,fill:none
-    linkStyle 5 stroke:#00aa00,stroke-width:3px,fill:none
-    linkStyle 6 stroke:#000000,stroke-width:3px,fill:none
-    linkStyle 7 stroke:#ff0000,stroke-width:3px,fill:none
-    linkStyle 8 stroke:#0066cc,stroke-width:3px,fill:none
-    linkStyle 9 stroke:#00aa00,stroke-width:3px,fill:none
-    linkStyle 10 stroke:#00aa00,stroke-width:3px,fill:none
-    linkStyle 12 stroke:#9900cc,stroke-width:3px,fill:none
-    linkStyle 13 stroke:#00aa00,stroke-width:3px,fill:none
-    linkStyle 14 stroke:#00aa00,stroke-width:3px,fill:none
-    linkStyle 15 stroke:#00aa00,stroke-width:3px,fill:none
-    linkStyle 16 stroke:#0066cc,stroke-width:3px,fill:none
-    linkStyle 17 stroke:#000000,stroke-width:3px,fill:none
-    linkStyle 18 stroke:#00aa00,stroke-width:3px,fill:none
-    linkStyle 19 stroke:#0066cc,stroke-width:3px,fill:none
-    linkStyle 20 stroke:#00aa00,stroke-width:3px,fill:none
-    linkStyle 21 stroke:#0066cc,stroke-width:3px,fill:none
-    linkStyle 22 stroke:#000000,stroke-width:3px,fill:none
-    linkStyle 23 stroke:#000000,stroke-width:3px,fill:none
-    linkStyle 24 stroke:#9900cc,stroke-width:3px,fill:none
-    linkStyle 25 stroke:#00aa00,stroke-width:3px,fill:none
-    linkStyle 26 stroke:#00aa00,stroke-width:3px,fill:none
-    linkStyle 27 stroke:#00aa00,stroke-width:3px,fill:none
-    linkStyle 28 stroke:#ff0000,stroke-width:3px,fill:none
-    linkStyle 29 stroke:#00aa00,stroke-width:3px,fill:none
-    linkStyle 30 stroke:#ff0000,stroke-width:3px,fill:none
-    linkStyle 31 stroke:#0066cc,stroke-width:3px,fill:none
-    linkStyle 32 stroke:#00aa00,stroke-width:3px,fill:none
-    linkStyle 33 stroke:#ff0000,stroke-width:3px,fill:none
-    linkStyle 34 stroke:#0066cc,stroke-width:3px,fill:none
-    linkStyle 35 stroke:#00aa00,stroke-width:3px,fill:none
-    linkStyle 36 stroke:#0066cc,stroke-width:3px,fill:none
-    linkStyle 37 stroke:#000000,stroke-width:3px,fill:none
-
-```
-
-## 🚀 Como Usar
-
-### Importação Simples
-```typescript
-// Importe do index principal
-import {
-  criarDeckAutomatico,
-  montarCardsComAlternativas,
-  gerarAlternativasIncorretas,
-  consultarApiINat
-} from '~/utils/api';
-```
-
-### Importação Específica
-```typescript
-// Importe de módulos específicos
-import { obterTaxonsIrmaos } from '~/utils/api/inaturalist';
-import { obterEspeciesMaisComuns } from '~/utils/api/gbif';
-```
-
-### Exemplo Prático
-
-#### 1. Criar Deck Automático com Cards
-```typescript
-const circleData = {
-  lat: -15.5, // Latitude do centro
-  lng: -47.5, // Longitude do centro
-  radiusKm: 50 // Raio em quilômetros
-};
-
-const deck = await criarDeckAutomatico(circleData, 20);
-console.log(`Deck criado com ${deck.totalCards} cards`);
-
-// Os cards já vêm com alternativas prontas e são agrupados por max_id_level:
-// - Se várias espécies têm max_id_level="genus", apenas 1 card é criado para o gênero
-// - O count usado na dificuldade é a soma de todas as espécies do grupo
-const deckStore = useDeckStore('meu-deck');
-await deckStore.addCards(deck.cards); // ✅ Cards prontos para uso
-```
-
-#### 2. Gerar Alternativas para Flashcard
-```typescript
-// Primeiro, obter o táxon correto
-const resultado = await consultarApiINat("Panthera onca");
-if (resultado) {
-  // Gerar alternativas incorretas
-  const alternativas = await gerarAlternativasIncorretas(
-    resultado.taxon,
-    resultado.nomePopularPt,
-    "species"
-  );
-
-  console.log("Alternativas incorretas:", alternativas);
-  // Pode retornar:
-  // [
-  //   { nome_cientifico: "Felis onca", nome_popular: "Leopardo" },
-  //   { nome_cientifico: "Puma concolor", nome_popular: "Onça-parda" },
-  //   { nome_cientifico: "Lynx rufus", nome_popular: "Onça-pintada" }
-  // ]
-}
-```
+- `criarDeckAutomatico()` - Pipeline completo retornando Cards prontos para `addCards()`
 
 ## ⚡ Otimizações Implementadas
 
@@ -245,7 +69,7 @@ if (resultado) {
 ### Cards com Níveis Automáticos e Agrupamento Inteligente
 - **NOVA**: Determina nível de dificuldade baseado no `max_id_level` do Redis
 - **NOVA**: Agrupa espécies pelo mesmo `max_id_level` para evitar cards repetidos
-  - Ex: Se *Turdus leucomelas* e *Turdus rufiventris* têm `max_id_level = "genus"`, cria apenas 1 card para "Turdus"
+  - Ex: Se *Turdus leucomelas* e *Turdus rufiventris* têm `max_id_level = \"genus\"`, cria apenas 1 card para \"Turdus\"
   - Soma os counts de todas as espécies do grupo para calcular dificuldade corretamente
 - `species` → `facil`, `genus` → `medio`, `family` → `dificil`, outros → `desafio`
 - Cooldown inicial baseado no nível de dificuldade
@@ -254,7 +78,6 @@ if (resultado) {
 - Se não conseguir alternativas específicas, completa com espécies aleatórias
 - Sempre garante exatamente 3 alternativas incorretas
 - Evita duplicatas usando `Set` interno
-
 
 ## 📝 Contribuição
 
@@ -270,7 +93,6 @@ Ao adicionar novas funcionalidades:
 
 As APIs têm limites de requisições:
 - **iNaturalist**: ~1 req/seg
-
 
 Para uso em produção, considere implementar:
 - Cache Redis para respostas das APIs externas

@@ -1,5 +1,8 @@
-import type { INatTaxon, Especie } from "./types";
-import { obterTaxonsIrmaos, obterEspeciesAleatorias } from "./inaturalist";
+import type { INatTaxon, Especie } from "../types";
+import {
+  obterTaxonsIrmaos,
+  obterEspeciesAleatorias,
+} from "../sources/inaturalist";
 import { obterAlternativasPreDefinidas } from "~/utils/redis";
 
 //----------------------------//
