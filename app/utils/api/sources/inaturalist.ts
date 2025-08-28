@@ -264,8 +264,10 @@ export async function obterTaxonsPrimos(
     const primos: INatChildren[] = [];
 
     // Iterar sobre os tios até obter primos suficientes
+    const iterator_limiter = 0; //evitar consultas excessivas, caso não haja primos suficientes
     for (const tio of tiosOrdenados) {
       if (primos.length >= count) break; // Já temos primos suficientes
+      if (iterator_limiter >= 5) break; // Evitar consultas excessivas
 
       const tioUrl = `https://api.inaturalist.org/v1/taxa/${tio.id}?locale=pt-BR`;
 
