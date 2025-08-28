@@ -79,19 +79,15 @@ export async function obterMaxIdLevel(
         response.value.result !== ""
       ) {
         console.info(
-          `✅ Encontrado maxId no Redis para ancestorId ${ancestorId}: ${response.value.result}`,
+          `✅ SUCESSO! ancestorId ${ancestorId} → maxLevel: ${response.value.result}`,
         );
         maxLevel = response.value.result;
         break;
       } else {
-        console.info(
-          `❌ Nenhum maxId encontrado no Redis para ancestorId ${ancestorId}`,
-        );
+        console.info(`❌ ancestorId ${ancestorId} não tem maxLevel no Redis`);
       }
     } catch (error) {
-      console.error(
-        `Erro ao consultar Redis para ancestorId ${ancestorId}: ${error}`,
-      );
+      console.error(`💥 Erro consultando ${ancestorId}: ${error}`);
       continue;
     }
   }
