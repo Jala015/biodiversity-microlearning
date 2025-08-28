@@ -42,15 +42,6 @@ function determinarNivelDificuldade(
     nivel += 0.005;
   }
 
-  // especies muito comuns têm alívio no nível
-  if (count > 100) {
-    nivel -= 0.02;
-  } else if (count > 50) {
-    nivel -= 0.01;
-  } else if (count > 20) {
-    nivel -= 0.005;
-  }
-
   switch (maxIdLevel.toLowerCase()) {
     case "species":
       nivel += 0.01;
