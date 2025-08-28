@@ -97,6 +97,12 @@ export interface SearchOptions {
 }
 
 // Tipo para resposta GBIF
-export interface GBIFResponse {
+export interface GbifOccResponse {
   facets: { counts: { name: string; count: number }[] }[];
+}
+
+export interface GbifSpeciesResponse {
+  key: number;
+  scientificName: string;
+  canonicalName: string;
 }

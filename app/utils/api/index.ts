@@ -11,7 +11,7 @@ export type {
   Especie,
   ConsultaINatResult,
   SearchOptions,
-  GBIFResponse,
+  GbifOccResponse,
 } from "./types";
 
 // Funções do iNaturalist

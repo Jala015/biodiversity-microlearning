@@ -1,4 +1,8 @@
-import type { SearchOptions, GBIFResponse } from "./types";
+import type {
+  SearchOptions,
+  GbifOccResponse,
+  GbifSpeciesResponse,
+} from "./types";
 
 //----------------------------//
 //                            //
@@ -12,6 +16,7 @@ import type { SearchOptions, GBIFResponse } from "./types";
 export async function obterEspeciesMaisComuns(opcoes: SearchOptions): Promise<{
   nomes_cientificos: string[];
   speciesCounts: Map<string, number>;
+  validSpecies: GbifSpeciesResponse[];
 }> {
   opcoes.maxSpecies = opcoes.maxSpecies || 20;
 
@@ -34,7 +39,7 @@ export async function obterEspeciesMaisComuns(opcoes: SearchOptions): Promise<{
 
   try {
     // Usar useFetch com URL direta do GBIF (Vercel rewrites vai fazer o proxy)
-    const { data: response, error } = await useFetch<GBIFResponse>(
+    const { data: response, error } = await useFetch<GbifOccResponse>(
       decodeURIComponent(url),
       {
         key: `gbif-${btoa(url).slice(0, 10)}`, // Cache key único baseado na URL
@@ -63,7 +68,11 @@ export async function obterEspeciesMaisComuns(opcoes: SearchOptions): Promise<{
 
     if (speciesKeys.length === 0) {
       console.log("📊 Nenhuma espécie encontrada na região");
-      return { nomes_cientificos: [], speciesCounts: new Map() };
+      return {
+        nomes_cientificos: [],
+        speciesCounts: new Map(),
+        validSpecies: [],
+      };
     }
 
     // Buscar nomes científicos para cada speciesKey com delay
@@ -72,16 +81,31 @@ export async function obterEspeciesMaisComuns(opcoes: SearchOptions): Promise<{
       const speciesKey = speciesKeys[i];
       try {
         const speciesUrl = `/api/gbif/species/${speciesKey}`;
-        const { data: speciesData } = await useFetch<{
-          canonicalName: string;
-        }>(speciesUrl, {
-          key: `gbif-species-${speciesKey}`,
-          server: false,
-          default: () => ({ canonicalName: "" }),
-        });
+        const { data: speciesData } = await useFetch<GbifSpeciesResponse>(
+          speciesUrl,
+          {
+            key: `gbif-species-${speciesKey}`,
+            server: false,
+            default: () => ({
+              canonicalName: "",
+              kingdom: "",
+              phylum: "",
+              class: "",
+              order: "",
+              family: "",
+              genus: "",
+            }),
+          },
+        );
         speciesResults.push({
           speciesKey,
           scientificName: speciesData.value?.canonicalName || "",
+          reino: speciesData.value?.kingdom || "",
+          filo: speciesData.value?.phylum || "",
+          classe: speciesData.value?.class || "",
+          ordem: speciesData.value?.order || "",
+          familia: speciesData.value?.family || "",
+          genero: speciesData.value?.genus || "",
         });
 
         // Delay de 510ms entre consultas
@@ -112,7 +136,7 @@ export async function obterEspeciesMaisComuns(opcoes: SearchOptions): Promise<{
     console.log(
       `📊 ${nomes_cientificos.length} espécies encontradas na região`,
     );
-    return { nomes_cientificos, speciesCounts };
+    return { nomes_cientificos, speciesCounts, validSpecies };
   } catch (error) {
     console.error("❌ Erro ao processar dados do GBIF:", error);
     throw error;

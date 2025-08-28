@@ -278,13 +278,14 @@ export async function criarDeckAutomatico(
 ) {
   try {
     // 1. Obter espécies mais comuns na região
-    const { nomes_cientificos, speciesCounts } = await obterEspeciesMaisComuns({
-      lat: circleData.lat,
-      lng: circleData.lng,
-      radiusKm: circleData.radiusKm,
-      maxSpecies,
-      taxonKeys,
-    });
+    const { nomes_cientificos, speciesCounts, validSpecies } =
+      await obterEspeciesMaisComuns({
+        lat: circleData.lat,
+        lng: circleData.lng,
+        radiusKm: circleData.radiusKm,
+        maxSpecies,
+        taxonKeys,
+      });
 
     if (nomes_cientificos.length === 0) {
       throw new Error("Nenhuma espécie encontrada na região especificada");

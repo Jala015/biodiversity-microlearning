@@ -48,19 +48,120 @@ Funções de alto nível para construção de decks:
 ## 📊 Fluxo de Dados
 
 ```mermaid
-graph TD
-    A[Região Geográfica] --> B[obterEspeciesMaisComuns - GBIF]
-    B --> C[Lista de Nomes Científicos]
-    C --> D[consultarApiINat - iNaturalist]
-    D --> E[Dados + Fotos + Táxons]
-    E --> F[montarDetalhesDasEspecies]
-    F --> G[Deck Completo]
+---
+config:
+  layout: elk
+---
+flowchart TB
+    START[("🌍 Circle Data<br>(lat, lng, radiusKm)")] --> CRIAR["🎯 criarDeckAutomatico()"]
+    CRIAR --> GBIF["🌐 obterEspeciesMaisComuns()"]
+    GBIF --> GBIF_API[("GBIF API")] & SPECIES_DATA[("📊 Nomes científicos e counts")]
+    GBIF_API --> GBIF
+    SPECIES_DATA --> MONTAR["🔧 montarCardsComAlternativas()"]
+    MONTAR --> CONSULTAR["🔍 consultarApiINat()"]
+    CONSULTAR --> INAT_API1[("iNaturalist API")] & INAT_DATA[("🐾 Taxon + Photo + Names")]
+    INAT_API1 --> CONSULTAR
+    INAT_DATA --> GET_LEVEL["🏷️ obterMaxIdLevel()"] & CARD_ASSEMBLY["🃏 Assemble Card"]
+    GET_LEVEL --> REDIS1[("Redis Cache")] & MAX_LEVEL[("📋 max_id_level")]
+    REDIS1 --> GET_LEVEL
+    MAX_LEVEL --> GRUPO["📂 Agrupadas por nivel taxonômico"]
+    GRUPO --> IMG_CURADA["🖼️ obterImagemCurada()"] & DIFICULDADE["⚡ determinarNivelDificuldade()"] & ALTERNATIVAS["🎲 gerarAlternativasIncorretas()"]
+    IMG_CURADA --> REDIS1[("Redis Cache")] & FINAL_IMG[("🖼️ Imagem Final")]
+    REDIS1 --> IMG_CURADA
+    DIFICULDADE --> NIVEL[("📈 Nível de dificuldade")]
+    ALTERNATIVAS --> PRE_DEF["📦 obterAlternativasPreDefinidas()"]
+    PRE_DEF --> REDIS1[("Redis Cache")] & CACHED{"✅ Encontrou no Cache?"}
+    REDIS1 --> PRE_DEF
+    CACHED -- Yes --> USE_CACHED[("✓ Usa Alternativas do Redis")]
+    CACHED -- No --> IRMAOS["👥 obterTaxonsIrmaos()"] & ALEATORIAS["🎯 obterEspeciesAleatorias()"]
+    IRMAOS --> INAT_API2[("iNaturalist API")] & WRONG_OPTIONS[("❌ Alternativas falsas")]
+    INAT_API2 --> IRMAOS
+    ALEATORIAS --> INAT_API3[("iNaturalist API")] & WRONG_OPTIONS
+    INAT_API3 --> ALEATORIAS
+    USE_CACHED --> WRONG_OPTIONS
+    NIVEL --> CARD_ASSEMBLY
+    FINAL_IMG --> CARD_ASSEMBLY
+    WRONG_OPTIONS --> CARD_ASSEMBLY
+    CARD_ASSEMBLY --> CARDS[("🎴 Array final de cards")]
+    CARDS --> DECK_RESULT[("🎯 Objeto de Deck<br>{cards, totalCards}")]
+     START:::inputData
+     CRIAR:::process
+     GBIF:::process
+     GBIF_API:::apiCall
+     SPECIES_DATA:::dataOutput
+     MONTAR:::process
+     CONSULTAR:::process
+     INAT_API1:::apiCall
+     INAT_DATA:::dataOutput
+     GET_LEVEL:::process
+     CARD_ASSEMBLY:::process
+     REDIS1:::redisCall
+     MAX_LEVEL:::dataOutput
+     GRUPO:::process
+     IMG_CURADA:::process
+     DIFICULDADE:::process
+     ALTERNATIVAS:::process
+     REDIS1:::redisCall
+     FINAL_IMG:::dataOutput
+     NIVEL:::dataOutput
+     PRE_DEF:::process
+     REDIS1:::redisCall
+     CACHED:::decision
+     USE_CACHED:::dataOutput
+     IRMAOS:::process
+     ALEATORIAS:::process
+     INAT_API2:::apiCall
+     WRONG_OPTIONS:::dataOutput
+     INAT_API3:::apiCall
+     CARDS:::dataOutput
+     DECK_RESULT:::dataOutput
+    classDef apiCall fill:#ffcccc,stroke:#ff0000,stroke-width:2px
+    classDef redisCall fill:#e6ccff,stroke:#9900cc,stroke-width:2px
+    classDef dataOutput fill:#ccffcc,stroke:#00aa00,stroke-width:2px
+    classDef inputData fill:#cce6ff,stroke:#0066cc,stroke-width:2px
+    classDef process fill:#ffe6cc,stroke:#cc6600,stroke-width:2px
+    classDef decision fill:#fff2cc,stroke:#ccaa00,stroke-width:2px
+    style START stroke-width:4px,stroke-dasharray: 0
+    style GRUPO stroke-width:4px,stroke-dasharray: 0
+    style DECK_RESULT stroke-width:4px,stroke-dasharray: 0
+    linkStyle 0 stroke:#0066cc,stroke-width:3px,fill:none
+    linkStyle 1 stroke:#000000,stroke-width:3px,fill:none
+    linkStyle 2 stroke:#ff0000,stroke-width:3px,fill:none
+    linkStyle 3 stroke:#0066cc,stroke-width:3px,fill:none
+    linkStyle 4 stroke:#00aa00,stroke-width:3px,fill:none
+    linkStyle 5 stroke:#00aa00,stroke-width:3px,fill:none
+    linkStyle 6 stroke:#000000,stroke-width:3px,fill:none
+    linkStyle 7 stroke:#ff0000,stroke-width:3px,fill:none
+    linkStyle 8 stroke:#0066cc,stroke-width:3px,fill:none
+    linkStyle 9 stroke:#00aa00,stroke-width:3px,fill:none
+    linkStyle 10 stroke:#00aa00,stroke-width:3px,fill:none
+    linkStyle 12 stroke:#9900cc,stroke-width:3px,fill:none
+    linkStyle 13 stroke:#00aa00,stroke-width:3px,fill:none
+    linkStyle 14 stroke:#00aa00,stroke-width:3px,fill:none
+    linkStyle 15 stroke:#00aa00,stroke-width:3px,fill:none
+    linkStyle 16 stroke:#0066cc,stroke-width:3px,fill:none
+    linkStyle 17 stroke:#000000,stroke-width:3px,fill:none
+    linkStyle 18 stroke:#00aa00,stroke-width:3px,fill:none
+    linkStyle 19 stroke:#0066cc,stroke-width:3px,fill:none
+    linkStyle 20 stroke:#00aa00,stroke-width:3px,fill:none
+    linkStyle 21 stroke:#0066cc,stroke-width:3px,fill:none
+    linkStyle 22 stroke:#000000,stroke-width:3px,fill:none
+    linkStyle 23 stroke:#000000,stroke-width:3px,fill:none
+    linkStyle 24 stroke:#9900cc,stroke-width:3px,fill:none
+    linkStyle 25 stroke:#00aa00,stroke-width:3px,fill:none
+    linkStyle 26 stroke:#00aa00,stroke-width:3px,fill:none
+    linkStyle 27 stroke:#00aa00,stroke-width:3px,fill:none
+    linkStyle 28 stroke:#ff0000,stroke-width:3px,fill:none
+    linkStyle 29 stroke:#00aa00,stroke-width:3px,fill:none
+    linkStyle 30 stroke:#ff0000,stroke-width:3px,fill:none
+    linkStyle 31 stroke:#0066cc,stroke-width:3px,fill:none
+    linkStyle 32 stroke:#00aa00,stroke-width:3px,fill:none
+    linkStyle 33 stroke:#ff0000,stroke-width:3px,fill:none
+    linkStyle 34 stroke:#0066cc,stroke-width:3px,fill:none
+    linkStyle 35 stroke:#00aa00,stroke-width:3px,fill:none
+    linkStyle 36 stroke:#0066cc,stroke-width:3px,fill:none
+    linkStyle 37 stroke:#000000,stroke-width:3px,fill:none
 
-    H[Táxon Correto] --> I[gerarAlternativasIncorretas]
-    I --> J[obterTaxonsIrmaos]
-    I --> K[obterEspeciesAleatorias]
-    J --> L[3 Alternativas Incorretas]
-    K --> L
 ```
 
 ## 🚀 Como Usar
@@ -89,7 +190,7 @@ import { obterEspeciesMaisComuns } from '~/utils/api/gbif';
 ```typescript
 const circleData = {
   lat: -15.5, // Latitude do centro
-  lng: -47.5, // Longitude do centro  
+  lng: -47.5, // Longitude do centro
   radiusKm: 50 // Raio em quilômetros
 };
 
