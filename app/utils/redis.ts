@@ -62,13 +62,22 @@ export async function obterMaxIdLevel(
       const { data: response, error } = await useFetch<
         UpstashResponse<string | null>
       >(`${process.env.UPSTASH_REDIS_REST_URL}/get/${redisKey}`, {
-        key: `redis-maxid-${ancestorId}`,
         server: false,
         default: () => ({ result: null }),
         headers: {
           Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}`,
         },
       });
+
+      // Debug detalhado
+      console.info(`🔍 DEBUG ancestorId ${ancestorId}:`);
+      console.info(
+        `   - URL: ${process.env.UPSTASH_REDIS_REST_URL}/get/${redisKey}`,
+      );
+      console.info(`   - error.value:`, error.value);
+      console.info(`   - response.value:`, response.value);
+      console.info(`   - response.value?.result:`, response.value?.result);
+      console.info(`   - typeof result:`, typeof response.value?.result);
 
       // Verificar se encontrou um valor válido no Redis (não nulo)
       if (
@@ -85,6 +94,11 @@ export async function obterMaxIdLevel(
         break;
       } else {
         console.info(`❌ ancestorId ${ancestorId} não tem maxLevel no Redis`);
+        if (ancestorId === 3) {
+          console.error(
+            `🚨 ATENÇÃO: ID 3 (Aves) deveria ter valor 'species' mas não foi encontrado!`,
+          );
+        }
       }
     } catch (error) {
       console.error(`💥 Erro consultando ${ancestorId}: ${error}`);

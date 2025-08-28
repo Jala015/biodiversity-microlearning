@@ -140,6 +140,10 @@ async function processarEAgrupar(
 
   for (const [speciesKey, dados] of dadosINat) {
     if (dados.foto) {
+      console.log(
+        `🔍 Buscando max_id_level para ${dados.nome_cientifico}...`,
+        dados,
+      );
       const max_id_level = await obterMaxIdLevel(dados);
       console.log(`Max IdLevel para ${dados.nome_cientifico}: ${max_id_level}`);
       speciesComMaxId.set(speciesKey, {
