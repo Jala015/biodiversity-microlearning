@@ -267,7 +267,7 @@ export async function obterTaxonsPrimos(
     let iterator_limiter = 0; //evitar consultas excessivas, caso não haja primos suficientes
     for (const tio of tiosOrdenados) {
       if (primos.length >= count) break; // Já temos primos suficientes
-      if (iterator_limiter >= 5) break; // Evitar consultas excessivas
+      if (iterator_limiter >= 3) break; // Evitar consultas excessivas
 
       const tioUrl = `https://api.inaturalist.org/v1/taxa/${tio.id}?locale=pt-BR`;
 
@@ -303,6 +303,7 @@ export async function obterTaxonsPrimos(
         !tioResp.value.results[0] ||
         !tioResp.value.results[0].children
       ) {
+        iterator_limiter++;
         continue; // Tentar próximo tio
       }
 
@@ -320,7 +321,6 @@ export async function obterTaxonsPrimos(
       console.log(
         `✓ Encontrados ${primosOrdenados.length} primos do táxon ${tio.name}`,
       );
-      iterator_limiter++;
     }
 
     // Se não encontramos primos, retornar os tios como fallback
