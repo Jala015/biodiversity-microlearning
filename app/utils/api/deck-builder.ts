@@ -29,6 +29,8 @@ function determinarNivelDificuldade(
   // frequência relativa
   let nivel = 1 - count / total; // de 0 a 1
 
+  nivel = nivel * 0.7;
+
   // espécies pouco avistadas têm penalidade no nível
   if (count == 1) {
     nivel += 0.3;
@@ -40,15 +42,24 @@ function determinarNivelDificuldade(
     nivel += 0.05;
   }
 
+  // especies muito comuns têm alívio no nível
+  if (count > 100) {
+    nivel -= 0.2;
+  } else if (count > 50) {
+    nivel -= 0.1;
+  } else if (count > 20) {
+    nivel -= 0.05;
+  }
+
   switch (maxIdLevel.toLowerCase()) {
     case "species":
-      nivel += 0.2;
-      break;
-    case "genus":
       nivel += 0.1;
       break;
-    case "family":
+    case "genus":
       nivel += 0.05;
+      break;
+    case "family":
+      nivel += 0.025;
       break;
     default:
       break;
