@@ -2,6 +2,7 @@ import type {
   SearchOptions,
   GbifOccResponse,
   GbifSpeciesResponse,
+  ValidSpecies,
 } from "../types";
 
 //----------------------------//
@@ -77,18 +78,20 @@ export async function obterEspeciesMaisComuns(opcoes: SearchOptions): Promise<{
       };
     }
 
-    // Buscar nomes científicos para cada speciesKey com delay
+    // Buscar nomes científicos e dados taxonômicos para cada speciesKey
     const speciesResults = [];
     for (let i = 0; i < speciesKeys.length; i++) {
       const speciesKey = speciesKeys[i];
       if (!speciesKey) continue;
       try {
+        // Buscar dados básicos do GBIF
         const speciesUrl = `/api/gbif/species/${speciesKey}`;
         const { data: speciesData } = await useFetch<any>(speciesUrl, {
           key: `gbif-species-${speciesKey}`,
           server: false,
           default: () => ({}),
         });
+
         speciesResults.push({
           key: parseInt(speciesKey) || 0,
           scientificName: speciesData.value?.canonicalName || "",
@@ -101,7 +104,7 @@ export async function obterEspeciesMaisComuns(opcoes: SearchOptions): Promise<{
           genero: speciesData.value?.genus || "",
         });
 
-        // Delay de 510ms entre consultas
+        // Delay entre consultas para respeitar rate limits
         if (i < speciesKeys.length - 1) {
           await new Promise((resolve) => setTimeout(resolve, 510));
         }

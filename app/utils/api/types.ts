@@ -112,3 +112,16 @@ export interface GbifSpeciesResponse {
   familia: string;
   genero: string;
 }
+
+export interface ValidSpecies {
+  key: number;
+  scientificName: string;
+  canonicalName: string;
+  reino: string;
+  filo: string;
+  classe: string;
+  ordem: string;
+  familia: string;
+  genero: string;
+  ancestorIds?: number[];
+}

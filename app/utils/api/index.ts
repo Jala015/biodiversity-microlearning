@@ -21,6 +21,8 @@ export type {
   ConsultaINatResult,
   SearchOptions,
   GbifOccResponse,
+  GbifSpeciesResponse,
+  ValidSpecies,
 } from "./types";
 
 // Funções do iNaturalist
@@ -34,7 +36,10 @@ export {
 export { obterEspeciesMaisComuns } from "./sources/gbif";
 
 // Geração de alternativas
-export { gerarAlternativasIncorretas } from "./generators/alternativas";
+export {
+  gerarAlternativasIncorretas,
+  gerarAlternativasComGrupos,
+} from "./generators/alternativas";
 
 // Construção de decks
 export {

@@ -6,6 +6,7 @@ import type {
   EspecieComDados,
   MediaEspecie,
   ConsultaINatResult,
+  ValidSpecies,
 } from "./types";
 import type { Card, NivelDificuldade } from "~/stores/decks";
 
@@ -95,6 +96,16 @@ async function coletarDados(
   // 1.2 Enriquecer com dados do iNaturalist
   console.log(`🔍 Buscando dados no iNaturalist...`);
   const dadosINat = new Map<string, ConsultaINatResult>();
+  // Criar um mapa para enriquecer ValidSpecies com ancestor_ids
+  const validSpeciesMap = new Map<string, ValidSpecies>();
+
+  // Converter array para mapa para acesso mais eficiente
+  dadosGBIF.validSpecies.forEach((species) => {
+    validSpeciesMap.set(species.scientificName, {
+      ...species,
+      ancestorIds: [], // Inicializar com array vazio
+    });
+  });
 
   const speciesSlice = dadosGBIF.nomes_cientificos.slice(0, maxSpecies * 2);
   for (let i = 0; i < speciesSlice.length; i++) {
@@ -104,6 +115,12 @@ async function coletarDados(
       const resultadoINat = await consultarApiINat(n);
       if (resultadoINat) {
         dadosINat.set(n, resultadoINat);
+
+        // Enriquecer ValidSpecies com ancestor_ids da resposta do iNaturalist
+        const validSpecies = validSpeciesMap.get(n);
+        if (validSpecies && resultadoINat.taxon.ancestor_ids) {
+          validSpecies.ancestorIds = resultadoINat.taxon.ancestor_ids;
+        }
       }
 
       // Delay de 1001ms entre consultas
@@ -118,9 +135,13 @@ async function coletarDados(
 
   console.log(`📊 ${dadosINat.size} espécies encontradas no iNaturalist`);
 
+  // Converter o mapa de volta para array
+  const validSpeciesEnriquecidos = Array.from(validSpeciesMap.values());
+
   return {
     dadosGBIF,
     dadosINat,
+    validSpecies: validSpeciesEnriquecidos,
     total: Array.from(dadosGBIF.speciesCounts.values()).reduce(
       (a, b) => a + b,
       0,
@@ -256,6 +277,7 @@ async function construirCards(
         dados.taxon,
         dados.nomePopularPt,
         maxIdLevel,
+        gruposTaxon,
       );
 
       // 3.4 Determinar nome do táxon para o card
@@ -331,7 +353,7 @@ export async function criarDeckAutomatico(
     console.log("🎯 Iniciando criação de deck automático...");
 
     // FASE 1: Coletar dados (GBIF + iNaturalist)
-    const { dadosGBIF, dadosINat, total } = await coletarDados(
+    const { dadosGBIF, dadosINat, validSpecies, total } = await coletarDados(
       circleData,
       maxSpecies,
       taxonKeys,

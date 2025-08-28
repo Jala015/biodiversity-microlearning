@@ -18,6 +18,15 @@ import type {
  *
  * Chamada por: montarCardsComAlternativas() em deck-builder.ts - para obter dados detalhados (taxon, foto, nomes) das espécies encontradas no GBIF
  */
+/**
+ * Consulta a API do iNaturalist para obter dados completos de uma espécie
+ *
+ * O resultado inclui ancestor_ids que são usados para:
+ * 1. Enriquecer ValidSpecies (evitando consultas redundantes)
+ * 2. Permitir busca de táxons irmãos taxonomicamente relacionados
+ *
+ * Chamada por: montarCardsComAlternativas() em deck-builder.ts - para obter dados detalhados (taxon, foto, nomes) das espécies encontradas no GBIF
+ */
 export async function consultarApiINat(
   scientificName: string,
 ): Promise<ConsultaINatResult | null> {
@@ -93,33 +102,38 @@ export async function consultarApiINat(
 
 /**
  * Gera uma lista de táxons distratores (grupos irmãos) para um táxon correto
+ * Usa ancestorids do iNaturalist para buscar táxons relacionados taxonomicamente
  *
  * Chamada por: gerarAlternativasIncorretas() em alternativas.ts - para buscar táxons relacionados taxonomicamente como alternativas incorretas
  */
-//FIXME
 export async function obterTaxonsIrmaos(
   correctTaxon: INatTaxon,
   count: number = 5,
 ): Promise<INatTaxon[]> {
-  if (!correctTaxon.parent_id) {
+  if (!correctTaxon.ancestor_ids || correctTaxon.ancestor_ids.length === 0) {
     console.warn(
-      `Táxon ${correctTaxon.name} não possui parent_id, não é possível buscar irmãos.`,
+      `Táxon ${correctTaxon.name} não possui ancestor_ids, não é possível buscar irmãos.`,
     );
     return [];
   }
 
   try {
-    const inatUrl = `https://api.inaturalist.org/v1/taxa?parent_id=${correctTaxon.parent_id}&per_page=${
+    // Usar ancestor_ids para buscar táxons do mesmo grupo taxonômico
+    const ancestorIdsStr = correctTaxon.ancestor_ids.join(",");
+    const inatUrl = `https://api.inaturalist.org/v1/taxa?ancestor_ids=${ancestorIdsStr}&per_page=${
       count * 3
     }&is_active=true&rank_level=${correctTaxon.rank_level}&locale=pt-BR`;
+
     console.log(
-      `ℹ️ Buscando táxons irmãos para ${correctTaxon.name}. URL: ${inatUrl}`,
+      `ℹ️ Buscando táxons irmãos para ${correctTaxon.name} usando ancestor_ids. URL: ${inatUrl}`,
     );
+
     await new Promise((resolve) => setTimeout(resolve, 1001)); // Adiciona um delay de 1001ms
+
     const { data: inatResp, error } = await useFetch<INatTaxaResponse>(
       inatUrl,
       {
-        key: `inat-siblings-${correctTaxon.parent_id}-${correctTaxon.rank_level}`,
+        key: `inat-siblings-ancestors-${ancestorIdsStr}-${correctTaxon.rank_level}`,
         server: false,
         default: () => ({
           results: [],
