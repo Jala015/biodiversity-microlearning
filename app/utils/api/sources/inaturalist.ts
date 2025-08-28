@@ -159,7 +159,7 @@ export async function obterTaxonsIrmaos(
       return [];
     }
 
-    if (!inatResp.value.results[0]) {
+    if (!inatResp.value.results[0] || !inatResp.value.results[0].children) {
       return [];
     }
 
@@ -243,6 +243,10 @@ export async function obterTaxonsPrimos(
     }
 
     const avô = inatResp.value.results[0];
+
+    if (!avô.children || !avô.children[0]) {
+      return [];
+    }
 
     // Buscar "tios" (children do avô) como primos taxonômicos
     // Excluir o pai do táxon correto para evitar duplicação com irmãos
