@@ -10,21 +10,19 @@ export async function obterImagemCurada(
   speciesKey: string,
 ): Promise<string | null> {
   try {
-    const { data: response, error } = await useFetch<
-      UpstashResponse<string | null>
-    >(`${runtimeConfig.upstashRedisRestUrl}/get/species:imagem:${speciesKey}`, {
-      key: `redis-imagem-${speciesKey}`,
-      server: false,
-      default: () => ({ result: null }),
-      headers: {
-        Authorization: `Bearer ${runtimeConfig.upstashRedisRestToken}`,
+    const response = await $fetch<UpstashResponse<string | null>>(
+      `${runtimeConfig.upstashRedisRestUrl}/get/species:imagem:${speciesKey}`,
+      {
+        headers: {
+          Authorization: `Bearer ${runtimeConfig.upstashRedisRestToken}`,
+        },
       },
-    });
+    );
 
-    if (error.value) {
+    if (!response || response.error) {
       console.error(
         `❌ Erro ao obter imagem curada para ${speciesKey}:`,
-        error.value,
+        response?.error || "Unknown error",
       );
       return null;
     }
@@ -57,38 +55,36 @@ export async function obterMaxIdLevel(
     console.info(`Buscando max id no nivel ${i}`);
     try {
       const redisKey = `species:taxonomiclevel:${ancestorId}`;
-      const { data: response, error } = await useFetch<
-        UpstashResponse<string | null>
-      >(`${runtimeConfig.upstashRedisRestUrl}/get/${redisKey}`, {
-        server: false,
-        default: () => ({ result: null }),
-        headers: {
-          Authorization: `Bearer ${runtimeConfig.upstashRedisRestToken}`,
+      const response = await $fetch<UpstashResponse<string | null>>(
+        `${runtimeConfig.upstashRedisRestUrl}/get/${redisKey}`,
+        {
+          headers: {
+            Authorization: `Bearer ${runtimeConfig.upstashRedisRestToken}`,
+          },
         },
-      });
+      );
 
       // Debug detalhado
       console.info(`🔍 DEBUG ancestorId ${ancestorId}:`);
       console.info(
         `   - URL: ${runtimeConfig.upstashRedisRestUrl}/get/${redisKey}`,
       );
-      console.info(`   - error.value:`, error.value);
-      console.info(`   - response.value:`, response.value);
-      console.info(`   - response.value?.result:`, response.value?.result);
-      console.info(`   - typeof result:`, typeof response.value?.result);
+      console.info(`   - response?.error:`, response?.error);
+      console.info(`   - response:`, response);
+      console.info(`   - response?.result:`, response?.result);
+      console.info(`   - typeof result:`, typeof response?.result);
 
       // Verificar se encontrou um valor válido no Redis (não nulo)
       if (
-        !error.value &&
-        response.value &&
-        response.value.result !== null &&
-        response.value.result !== undefined &&
-        response.value.result !== ""
+        !response?.error &&
+        response?.result !== null &&
+        response?.result !== undefined &&
+        response?.result !== ""
       ) {
         console.info(
-          `✅ SUCESSO! ancestorId ${ancestorId} → maxLevel: ${response.value.result}`,
+          `✅ SUCESSO! ancestorId ${ancestorId} → maxLevel: ${response.result}`,
         );
-        maxLevel = response.value.result;
+        maxLevel = response.result;
         break;
       } else {
         console.info(`❌ ancestorId ${ancestorId} não tem maxLevel no Redis`);
@@ -115,7 +111,7 @@ export async function obterAlternativasPreDefinidas(
 }> | null> {
   try {
     const redisKey = `especies:alternativas:${inatId}`;
-    const { data: response, error } = await useFetch<
+    const response = await $fetch<
       UpstashResponse<Record<string, string> | null>
     >(`${runtimeConfig.upstashRedisRestUrl}/hgetall/${redisKey}`, {
       key: `redis-alternativas-${inatId}`,
@@ -126,15 +122,15 @@ export async function obterAlternativasPreDefinidas(
       },
     });
 
-    if (error.value) {
+    if (!response || response.error) {
       console.error(
         `❌ Erro ao obter alternativas pré-definidas para ${inatId}:`,
-        error.value,
+        response?.error || "Unknown error",
       );
       return [];
     }
 
-    if (!response.value?.result) {
+    if (!response.result) {
       return null;
     }
 
@@ -167,7 +163,7 @@ export async function obterAlternativasPreDefinidas(
 // Função auxiliar para testar a conexão
 export async function verificarConexaoRedis(): Promise<boolean> {
   try {
-    const { error } = await useFetch<UpstashResponse<string>>(
+    const response = await $fetch<UpstashResponse<string>>(
       `${runtimeConfig.upstashRedisRestUrl}/ping`,
       {
         key: "redis-ping-check",
@@ -179,8 +175,11 @@ export async function verificarConexaoRedis(): Promise<boolean> {
       },
     );
 
-    if (error.value) {
-      console.error("❌ Erro ao verificar conexão Redis:", error.value);
+    if (!response || response.error) {
+      console.error(
+        "❌ Erro ao verificar conexão Redis:",
+        response?.error || "Unknown error",
+      );
       return false;
     }
 
