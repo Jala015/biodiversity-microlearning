@@ -15,6 +15,8 @@ import type {
 
 /**
  * Consulta a API do iNaturalist para obter dados completos de uma espécie
+ *
+ * Chamada por: montarCardsComAlternativas() em deck-builder.ts - para obter dados detalhados (taxon, foto, nomes) das espécies encontradas no GBIF
  */
 export async function consultarApiINat(
   scientificName: string,
@@ -91,6 +93,8 @@ export async function consultarApiINat(
 
 /**
  * Gera uma lista de táxons distratores (grupos irmãos) para um táxon correto
+ *
+ * Chamada por: gerarAlternativasIncorretas() em alternativas.ts - para buscar táxons relacionados taxonomicamente como alternativas incorretas
  */
 //FIXME
 export async function obterTaxonsIrmaos(
@@ -159,6 +163,8 @@ export async function obterTaxonsIrmaos(
 
 /**
  * Busca espécies aleatórias para usar como distratores genéricos
+ *
+ * Chamada por: gerarAlternativasIncorretas() em alternativas.ts - para completar alternativas incorretas quando não há táxons irmãos suficientes
  */
 export async function obterEspeciesAleatorias(
   count: number = 3,

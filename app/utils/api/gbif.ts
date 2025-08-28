@@ -12,6 +12,8 @@ import type {
 
 /**
  * Obter espécies mais comuns na região usando API do GBIF
+ *
+ * Chamada por: criarDeckAutomatico() em deck-builder.ts - para obter lista inicial de espécies mais registradas na região
  */
 export async function obterEspeciesMaisComuns(opcoes: SearchOptions): Promise<{
   nomes_cientificos: string[];

@@ -10,6 +10,8 @@ import { obterAlternativasPreDefinidas } from "~/utils/redis";
 
 /**
  * Extrai o epiteto específico de um nome científico binomial
+ *
+ * Chamada por: gerarAlternativasIncorretas() - para criar alternativas usando epiteto correto + gênero errado
  */
 function extrairEpitetoEspecifico(nomeCientifico: string): string | null {
   const partes = nomeCientifico.trim().split(" ");
@@ -21,6 +23,8 @@ function extrairEpitetoEspecifico(nomeCientifico: string): string | null {
 
 /**
  * Extrai o gênero de um nome científico binomial
+ *
+ * Chamada por: gerarAlternativasIncorretas() - para criar alternativas misturando gênero de irmão com epiteto correto
  */
 function extrairGenero(nomeCientifico: string): string | null {
   const partes = nomeCientifico.trim().split(" ");
@@ -32,6 +36,8 @@ function extrairGenero(nomeCientifico: string): string | null {
 
 /**
  * Gera exatamente 3 alternativas incorretas para um flashcard
+ *
+ * Chamada por: montarCardsComAlternativas() em deck-builder.ts - para criar as alternativas erradas dos Cards
  */
 export async function gerarAlternativasIncorretas(
   correctTaxon: INatTaxon,

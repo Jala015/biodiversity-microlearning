@@ -105,4 +105,10 @@ export interface GbifSpeciesResponse {
   key: number;
   scientificName: string;
   canonicalName: string;
+  reino: string;
+  filo: string;
+  classe: string;
+  ordem: string;
+  familia: string;
+  genero: string;
 }

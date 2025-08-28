@@ -43,7 +43,6 @@ Lógica para geração de alternativas incorretas em flashcards com cache Redis:
 Funções de alto nível para construção de decks:
 - `montarCardsComAlternativas()` - **NOVA** - Processa espécies e cria Cards com alternativas prontas, agrupando por max_id_level para evitar repetições
 - `criarDeckAutomatico()` - **REFATORADA** - Pipeline completo retornando Cards prontos para `addCards()`
-- `montarDetalhesDasEspecies()` - Função de compatibilidade (interface antiga)
 
 ## 📊 Fluxo de Dados
 

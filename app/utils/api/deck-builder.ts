@@ -17,6 +17,8 @@ import type { Card, NivelDificuldade } from "~/stores/decks";
 
 /**
  * Função para determinar nível de dificuldade baseado no max_id_level
+ *
+ * Chamada por: montarCardsComAlternativas() - para definir o nível de dificuldade dos Cards criados
  */
 function determinarNivelDificuldade(
   maxIdLevel: string,
@@ -65,6 +67,8 @@ function determinarNivelDificuldade(
 
 /**
  * Obter fotos, nome científico, nome popular e montar Cards completos com alternativas
+ *
+ * Chamada por: criarDeckAutomatico() - função principal que cria deck automático baseado em região geográfica
  */
 export async function montarCardsComAlternativas(
   scientificNames: string[],
@@ -270,6 +274,8 @@ export async function montarCardsComAlternativas(
 
 /**
  * Função principal para criar um deck automático baseado em região geográfica
+ *
+ * Chamada por: Componentes Vue/páginas da aplicação - entry point para criação automática de decks
  */
 export async function criarDeckAutomatico(
   circleData: { lat: number; lng: number; radiusKm: number },
@@ -312,88 +318,4 @@ export async function criarDeckAutomatico(
     console.error("❌ Erro ao criar deck automático:", error);
     throw error;
   }
-}
-
-/**
- * Função de compatibilidade - mantém a interface antiga para espécies detalhadas
- */
-export async function montarDetalhesDasEspecies(
-  scientificNames: string[],
-  maxSpecies: number,
-  counts: Map<string, number>,
-): Promise<Map<string, EspecieComDados>> {
-  console.log(`🔍 Processando ${scientificNames.length} espécies...`);
-
-  const speciesMap = new Map<string, EspecieComDados>();
-  let especiesComImagem = 0;
-
-  // Primeiro: buscar todos os dados no iNaturalist
-  console.log(`🔍 Buscando dados no iNaturalist...`);
-  const dadosINat = new Map<string, ConsultaINatResult>();
-
-  // Buscar dados do iNaturalist para todas as espécies usando GBIF species name
-  const speciesSlice = scientificNames.slice(0, maxSpecies * 2);
-  for (let i = 0; i < speciesSlice.length; i++) {
-    const n = speciesSlice[i];
-    try {
-      const resultadoINat = await consultarApiINat(n);
-      if (resultadoINat) {
-        dadosINat.set(n, resultadoINat);
-      }
-
-      // Delay de 1001ms entre consultas
-      if (i < speciesSlice.length - 1) {
-        await new Promise((resolve) => setTimeout(resolve, 1001));
-      }
-    } catch (error) {
-      console.error(`❌ Erro ao buscar dados iNaturalist para ${n}:`, error);
-      continue;
-    }
-  }
-
-  console.log(`📊 ${dadosINat.size} espécies encontradas no iNaturalist`);
-
-  // Segundo: para cada espécie com dados do iNaturalist, verificar se tem imagem curada
-  for (const [speciesKey, dados] of dadosINat) {
-    if (especiesComImagem >= maxSpecies) break;
-
-    if (dados.foto) {
-      const count = counts.get(speciesKey) || 0;
-
-      // Verificar se existe imagem curada
-      let mediaFinal: MediaEspecie = dados.foto;
-      let fonteImagem = "iNaturalist";
-
-      const imagemCurada = await obterImagemCurada(speciesKey);
-      if (imagemCurada) {
-        mediaFinal = {
-          identifier: imagemCurada,
-          type: "StillImage",
-          license: "Curada",
-          rightsHolder: "Curadoria",
-        };
-        fonteImagem = "curada";
-      }
-
-      // Buscar max_id_level do Redis
-      const max_id_level = await obterMaxIdLevel(dados.inatId);
-
-      speciesMap.set(speciesKey, {
-        speciesKey,
-        nome_cientifico: dados.nome_cientifico,
-        nome_popular: dados.nomePopularPt,
-        media: [mediaFinal],
-        contagemOcorrencias: count,
-        max_id_level,
-      });
-
-      especiesComImagem++;
-      console.log(
-        `✓ Imagem ${fonteImagem} para ${dados.nome_cientifico} (${dados.nomePopularPt || "sem nome popular"})`,
-      );
-    }
-  }
-
-  console.log(`✅ Total: ${especiesComImagem} espécies processadas`);
-  return speciesMap;
 }
