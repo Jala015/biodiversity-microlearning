@@ -3,6 +3,10 @@
     {
       "source": "/api/gbif/(.*)",
       "destination": "https://api.gbif.org/v1/$1"
+    },
+    {
+      "source": "/api/valid_species/(.*)",
+      "destination": "https://giving-rattler-37858.upstash.io/$1"
     }
   ]
 }

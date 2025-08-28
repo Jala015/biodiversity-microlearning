@@ -1,6 +1,6 @@
 import type { ConsultaINatResult } from "./api";
 
-const redis_url = "https://giving-rattler-37858.upstash.io/";
+const redis_url = "/api/valid_species/";
 const redis_api_key = "ApPiAAIgcDEdSow3u_0gj_Y4i-PLM7zHNLf6uEuJmr4PLNwD-X13nA";
 
 interface UpstashResponse<T = string> {

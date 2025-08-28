@@ -2,7 +2,6 @@ import type {
   SearchOptions,
   GbifOccResponse,
   GbifSpeciesResponse,
-  ValidSpecies,
 } from "../types";
 
 //----------------------------//
