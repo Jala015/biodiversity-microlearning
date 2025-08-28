@@ -4,7 +4,6 @@ import {
   criarDeckAutomatico,
   consultarApiINat,
   gerarAlternativasIncorretas,
-  montarCardsComAlternativas,
 } from "../../app/utils/api";
 
 // Dados de teste para região de São Paulo
@@ -95,34 +94,6 @@ describe("API iNaturalist e GBIF - Funções Atuais", () => {
     }
   }, 15000);
 
-  // Teste para montarCardsComAlternativas
-  it("deve montar cards com alternativas a partir de nomes científicos", async () => {
-    const nomesEspecies = ["Turdus rufiventris", "Pitangus sulphuratus"];
-    const counts = new Map([
-      ["Turdus rufiventris", 15],
-      ["Pitangus sulphuratus", 8],
-    ]);
-
-    const cards = await montarCardsComAlternativas(nomesEspecies, 2, counts);
-
-    expect(Array.isArray(cards)).toBe(true);
-
-    if (cards.length > 0) {
-      cards.forEach((card) => {
-        expect(card.id).toBeDefined();
-        expect(card.taxon).toBeDefined();
-        expect(card.nivel).toBeDefined();
-        expect(["facil", "medio", "dificil", "desafio"]).toContain(card.nivel);
-        expect(card.cooldown).toBeDefined();
-        expect(typeof card.cooldown).toBe("number");
-        expect(card.lastSeenAt).toBeDefined();
-        expect(card.alternativas_erradas).toBeDefined();
-        expect(Array.isArray(card.alternativas_erradas)).toBe(true);
-        expect(card.alternativas_erradas).toHaveLength(3);
-      });
-    }
-  }, 20000);
-
   // Teste para criarDeckAutomatico (função principal)
   it("deve criar um deck automático completo", async () => {
     const deck = await criarDeckAutomatico(dadosCirculo, 3);
@@ -183,3 +154,80 @@ describe("API iNaturalist e GBIF - Funções Atuais", () => {
     expect(resultado).toBeNull();
   }, 5000);
 });
+
+// teste com obterMaxId
+import { obterMaxIdLevel } from "../../app/utils/redis";
+
+it("deve retornar o maior ID de uma espécie", async () => {
+  const nomeValido = "Felis catus";
+
+  const resultado = await obterMaxIdLevel({
+    taxon: {
+      id: 904336,
+      complete_rank: "species",
+      children: [],
+      rank: "species",
+      rank_level: 10,
+      iconic_taxon_id: 47119,
+      ancestor_ids: [
+        48460, 1, 47120, 245097, 47119, 47118, 120474, 342614, 319384, 1492653,
+        904332, 904336,
+      ],
+      is_active: true,
+      name: "Trichonephila clavipes",
+      parent_id: 904332,
+      ancestry:
+        "48460/1/47120/245097/47119/47118/120474/342614/319384/1492653/904332",
+      extinct: false,
+      default_photo: {
+        id: 504064519,
+        license_code: "cc-by-nc",
+        attribution:
+          "(c) Francisco Herrera, some rights reserved (CC BY-NC), uploaded by Francisco Herrera",
+        url: "https://inaturalist-open-data.s3.amazonaws.com/photos/504064519/square.jpg",
+        original_dimensions: {
+          height: 2048,
+          width: 1638,
+        },
+        flags: [],
+        attribution_name: "Francisco Herrera",
+        square_url:
+          "https://inaturalist-open-data.s3.amazonaws.com/photos/504064519/square.jpg",
+        medium_url:
+          "https://inaturalist-open-data.s3.amazonaws.com/photos/504064519/medium.jpg",
+      },
+      taxon_changes_count: 1,
+      taxon_schemes_count: 0,
+      observations_count: 52903,
+      flag_counts: {
+        resolved: 0,
+        unresolved: 0,
+      },
+      current_synonymous_taxon_ids: null,
+      atlas_id: 28525,
+      complete_species_count: null,
+      wikipedia_url: "https://en.wikipedia.org/wiki/Trichonephila_clavipes",
+      matched_term: "Trichonephila clavipes",
+      iconic_taxon_name: "Arachnida",
+      preferred_common_name: "Aranha-de-teia-dourada",
+      english_common_name: "Golden Silk Spider",
+    },
+    inatId: 904336,
+    nome_cientifico: "Trichonephila clavipes",
+    nomePopularPt: "Aranha-de-teia-dourada",
+    foto: {
+      identifier:
+        "https://inaturalist-open-data.s3.amazonaws.com/photos/504064519/medium.jpg",
+      type: "StillImage",
+      license: "cc-by-nc",
+      rightsHolder:
+        "(c) Francisco Herrera, some rights reserved (CC BY-NC), uploaded by Francisco Herrera",
+    },
+    ancestor_ids: [
+      48460, 1, 47120, 245097, 47119, 47118, 120474, 342614, 319384, 1492653,
+      904332, 904336,
+    ],
+  });
+
+  expect(resultado).toBeGreaterThan(0);
+}, 5000);
