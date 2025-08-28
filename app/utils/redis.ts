@@ -69,10 +69,14 @@ export async function obterMaxIdLevel(
         },
       });
       if (!error.value) {
+        console.info(
+          `Consulta redis para ${ancestorId} funcionou: ${response.value?.result}`,
+        );
         maxLevel = response.value?.result || maxLevel;
         break;
       }
     } catch (error) {
+      console.error(`Erro ao consultar redis para ${ancestorId}: ${error}`);
       continue;
     }
   }

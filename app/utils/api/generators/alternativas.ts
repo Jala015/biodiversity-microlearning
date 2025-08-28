@@ -141,7 +141,7 @@ export async function gerarAlternativasIncorretas(
   console.log(
     `🎲 Gerando alternativas automaticamente para ${correctTaxon.name}`,
   );
-  const alternativas: Especie[] = [];
+  let alternativas: Especie[] = [];
   const alternativasUsadas = new Set<string>(); // Para evitar duplicatas
 
   // 2. SEGUNDA PRIORIDADE: Buscar no mesmo grupo taxonômico processado por processarEAgrupar()
@@ -209,6 +209,21 @@ export async function gerarAlternativasIncorretas(
       console.error(`Erro ao buscar táxons primos:`, error);
     }
   }
+
+  //fatiar cada resultado para não ter mais de duas palavras (evitar subespecies)
+  alternativas.forEach((alternativa) => {
+    alternativa.nome_cientifico = alternativa.nome_cientifico
+      .split(" ")
+      .slice(0, 2)
+      .join(" ");
+  });
+
+  //remover alternativas repetidas (eram mesma esppécie com subespecies diferentes)
+  alternativas = alternativas.filter(
+    (alternativa, index, self) =>
+      index ===
+      self.findIndex((a) => a.nome_cientifico === alternativa.nome_cientifico),
+  );
 
   // 5. ESTRATÉGIAS ESPECÍFICAS PARA NÍVEL DE ESPÉCIE (apenas se ainda faltarem alternativas)
   if (alternativas.length < 3 && nivelTaxonomicoMaximo === "species") {
