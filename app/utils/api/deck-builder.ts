@@ -33,33 +33,33 @@ function determinarNivelDificuldade(
 
   // espécies pouco avistadas têm penalidade no nível
   if (count == 1) {
-    nivel += 0.3;
+    nivel += 0.03;
   } else if (count < 5) {
-    nivel += 0.2;
+    nivel += 0.02;
   } else if (count < 10) {
-    nivel += 0.1;
+    nivel += 0.01;
   } else if (count < 20) {
-    nivel += 0.05;
+    nivel += 0.005;
   }
 
   // especies muito comuns têm alívio no nível
   if (count > 100) {
-    nivel -= 0.2;
+    nivel -= 0.02;
   } else if (count > 50) {
-    nivel -= 0.1;
+    nivel -= 0.01;
   } else if (count > 20) {
-    nivel -= 0.05;
+    nivel -= 0.005;
   }
 
   switch (maxIdLevel.toLowerCase()) {
     case "species":
-      nivel += 0.1;
+      nivel += 0.01;
       break;
     case "genus":
-      nivel += 0.05;
+      nivel += 0.005;
       break;
     case "family":
-      nivel += 0.025;
+      nivel += 0.0025;
       break;
     default:
       break;
@@ -180,6 +180,7 @@ async function processarEAgrupar(
   for (const [speciesKey, dados] of dadosINat) {
     if (dados.foto) {
       const max_id_level = await obterMaxIdLevel(dados);
+      console.log(`Max IdLevel para ${dados.nome_cientifico}: ${max_id_level}`);
       speciesComMaxId.set(speciesKey, {
         dados,
         maxIdLevel: max_id_level || "species",
