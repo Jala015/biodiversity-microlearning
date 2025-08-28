@@ -54,15 +54,16 @@ function determinarNivelDificuldade(
       break;
   }
 
-  switch (true) {
-    case nivel < 0.25:
-      return "facil";
-    case nivel < 0.5:
-      return "medio";
-    case nivel < 0.75:
-      return "dificil";
-    default:
-      return "desafio";
+  console.log("calculo do nível: ", nivel);
+
+  if (nivel < 0.25) {
+    return "facil";
+  } else if (nivel < 0.5) {
+    return "medio";
+  } else if (nivel < 0.75) {
+    return "dificil";
+  } else {
+    return "desafio";
   }
 }
 
