@@ -36,10 +36,7 @@ export {
 export { obterEspeciesMaisComuns } from "./sources/gbif";
 
 // Geração de alternativas
-export {
-  gerarAlternativasIncorretas,
-  gerarAlternativasComGrupos,
-} from "./generators/alternativas";
+export { gerarAlternativasIncorretas } from "./generators/alternativas";
 
 // Construção de decks
 export {

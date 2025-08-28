@@ -131,17 +131,6 @@ await gerarAlternativasIncorretas(
 )
 ```
 
-### `gerarAlternativasComGrupos()`
-```typescript
-// Nova função para uso externo com grupos explícitos
-await gerarAlternativasComGrupos(
-  correctTaxon,
-  nomePopularCorreto,
-  nivelTaxonomicoMaximo,
-  gruposTaxon  // ← obrigatório
-)
-```
-
 ### `obterTaxonsIrmaos()`
 ```typescript
 // Agora usa ancestor_ids em vez de apenas parent_id

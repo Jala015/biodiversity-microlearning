@@ -43,6 +43,15 @@ export async function obterMaxIdLevel(
   dados: ConsultaINatResult,
 ): Promise<string> {
   let maxLevel = "species";
+  if (!dados) {
+    console.error("Erro ao obter maxIdLevel. Dados inválidos");
+    return maxLevel;
+  }
+  if (!dados.ancestor_ids || !Array.isArray(dados.ancestor_ids)) {
+    console.error("Erro ao obter maxIdLevel. ancestorIds com problema");
+    return maxLevel;
+  }
+
   // Iterar entre os níveis de taxonomia, do mais específico ao mais genérico
   for (let i = dados.ancestor_ids.length - 1; i >= 0; i--) {
     const ancestorId = dados.ancestor_ids[i];
