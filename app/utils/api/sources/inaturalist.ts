@@ -251,20 +251,20 @@ export async function obterTaxonsPrimos(
 
     // Filtrar os "tios" (irmãos do pai)
     // Excluir o pai do táxon correto para evitar duplicação com irmãos
-    const tios = avô.children.filter(
+    let tios = avô.children.filter(
       (tio) => tio.id !== correctTaxon.parent_id && tio.id !== correctTaxon.id,
     );
 
     // Ordenar tios por número de espécies (priorizar os mais conhecidos)
-    const tiosOrdenados = tios.sort(
+    let tiosOrdenados = tios.sort(
       (a, b) => b.complete_species_count - a.complete_species_count,
     );
 
     // Buscar filhos dos tios (primos verdadeiros)
-    const primos: INatChildren[] = [];
+    let primos: INatChildren[] = [];
 
     // Iterar sobre os tios até obter primos suficientes
-    const iterator_limiter = 0; //evitar consultas excessivas, caso não haja primos suficientes
+    let iterator_limiter = 0; //evitar consultas excessivas, caso não haja primos suficientes
     for (const tio of tiosOrdenados) {
       if (primos.length >= count) break; // Já temos primos suficientes
       if (iterator_limiter >= 5) break; // Evitar consultas excessivas

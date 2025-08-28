@@ -56,6 +56,7 @@ export async function obterMaxIdLevel(
   // Iterar entre os níveis de taxonomia, do mais específico ao mais genérico
   for (let i = dados.ancestor_ids.length - 1; i >= 0; i--) {
     const ancestorId = dados.ancestor_ids[i];
+    console.info(`Buscando max id no nivel ${i}`);
     try {
       const redisKey = `species:taxonomiclevel:${ancestorId}`;
       const { data: response, error } = await useFetch<
