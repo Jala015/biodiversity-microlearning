@@ -92,6 +92,7 @@ export interface Especie {
 export interface ConsultaINatResult {
   taxon: INatTaxon;
   inatId: number;
+  ancestor_ids: number[];
   foto: MediaEspecie | undefined;
   nomePopularPt: string | undefined;
   nome_cientifico: string;

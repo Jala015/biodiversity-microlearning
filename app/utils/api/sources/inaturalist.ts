@@ -93,6 +93,7 @@ export async function consultarApiINat(
       nome_cientifico,
       nomePopularPt,
       foto,
+      ancestor_ids: taxon.ancestor_ids,
     };
   } catch (error) {
     console.error(`❌ Erro ao unificar espécie ${scientificName}:`, error);

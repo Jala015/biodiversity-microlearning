@@ -1,3 +1,6 @@
+import { isNative, max } from "lodash";
+import type { ConsultaINatResult } from "./api";
+
 interface UpstashResponse<T = string> {
   result: T;
 }
@@ -36,32 +39,34 @@ export async function obterImagemCurada(
 }
 
 // Função para obter o máximo nível de taxonomia identificável para um determinado ID de iNaturalist
-export async function obterMaxIdLevel(inatId: number): Promise<string> {
-  try {
-    const redisKey = `species:taxonomiclevel:${inatId}`;
-    const { data: response, error } = await useFetch<
-      UpstashResponse<string | null>
-    >(`${process.env.UPSTASH_REDIS_REST_URL}/get/${redisKey}`, {
-      key: `redis-maxid-${inatId}`,
-      server: false,
-      default: () => ({ result: "species" }),
-      headers: {
-        Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}`,
-      },
-    });
-
-    if (error.value) {
-      console.error(
-        `❌ Erro ao obter max_id_level para ${inatId}:`,
-        error.value,
-      );
-      return "species";
+export async function obterMaxIdLevel(
+  dados: ConsultaINatResult,
+): Promise<string> {
+  let maxLevel = "species";
+  // Iterar entre os níveis de taxonomia, do mais específico ao mais genérico
+  for (let i = dados.ancestor_ids.length - 1; i >= 0; i--) {
+    const ancestorId = dados.ancestor_ids[i];
+    try {
+      const redisKey = `species:taxonomiclevel:${ancestorId}`;
+      const { data: response, error } = await useFetch<
+        UpstashResponse<string | null>
+      >(`${process.env.UPSTASH_REDIS_REST_URL}/get/${redisKey}`, {
+        key: `redis-maxid-${ancestorId}`,
+        server: false,
+        default: () => ({ result: "species" }),
+        headers: {
+          Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}`,
+        },
+      });
+      if (!error.value) {
+        maxLevel = response.value?.result || maxLevel;
+        break;
+      }
+    } catch (error) {
+      continue;
     }
-
-    return response.value?.result || "species";
-  } catch (error) {
-    return "";
   }
+  return maxLevel;
 }
 
 // Função para obter alternativas pré-definidas do Redis
