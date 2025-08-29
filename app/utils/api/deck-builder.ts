@@ -96,11 +96,6 @@ async function coletarDados(
           validSpecies.ancestorIds = resultadoINat.taxon.ancestor_ids;
         }
       }
-
-      // Delay de 1001ms entre consultas
-      if (i < speciesSlice.length - 1) {
-        await new Promise((resolve) => setTimeout(resolve, 1001));
-      }
     } catch (error) {
       console.error(`❌ Erro ao buscar dados iNaturalist para ${n}:`, error);
       continue;
@@ -430,9 +425,6 @@ export async function montarCardsComAlternativas(
       const resultadoINat = await consultarApiINat(n);
       if (resultadoINat) {
         dadosINat.set(n, resultadoINat);
-      }
-      if (i < scientificNames.length - 1) {
-        await new Promise((resolve) => setTimeout(resolve, 1001));
       }
     } catch (error) {
       console.error(`❌ Erro ao buscar dados iNaturalist para ${n}:`, error);

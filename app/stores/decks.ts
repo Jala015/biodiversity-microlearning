@@ -12,6 +12,7 @@ export const ORDEM_NIVEIS: NivelDificuldade[] = [
   "desafio",
 ];
 
+// Remova a propriedade _db da interface DeckState.
 export interface DeckState {
   id: string;
   globalCounter: number;
@@ -20,42 +21,50 @@ export interface DeckState {
   cooldownQueue: Card[];
   reviewQueue: Card[];
   config: DeckConfig;
-  _db: IDBPDatabase | null;
 }
+
+// Esta função agora está fora da store e não depende de 'this'.
+function saveDeck(deck: DeckState, db: IDBPDatabase) {
+  if (!db) return;
+  // A chave agora é o ID do deck
+  const rawDeck = toRaw(deck);
+  db.put("state", rawDeck, deck.id);
+}
+
+const DB_NAME = "decks-main-db";
+const STORE_NAME = "state";
 
 export const useDecksStore = defineStore("decks", {
   state: () => ({
     activeDeckId: null as string | null,
     decks: {} as Record<string, DeckState>,
+    // Uma única conexão para o banco de dados principal
+    dbConnection: null as IDBPDatabase | null,
   }),
 
   actions: {
-    // Inicializa IndexedDB
-    async initDB(deckId: string) {
-      let deck = this.decks[deckId];
-      if (!deck) return;
-
-      if (!deck._db) {
-        deck._db = await openDB(`deckdb-${deckId}`, 1, {
+    /**
+     * Inicializa a conexão com o banco de dados principal.
+     */
+    async initDB() {
+      if (!this.dbConnection) {
+        this.dbConnection = await openDB(DB_NAME, 1, {
           upgrade(db) {
-            if (!db.objectStoreNames.contains("state")) {
-              db.createObjectStore("state");
+            if (!db.objectStoreNames.contains(STORE_NAME)) {
+              db.createObjectStore(STORE_NAME);
             }
           },
         });
       }
-
-      // Carrega estado salvo
-      const saved = await deck._db.get("state", "pinia");
-      if (saved) {
-        const dbRef = deck._db;
-        Object.assign(deck, saved);
-        deck._db = dbRef;
-      }
     },
 
-    // Ativa ou cria um deck
+    /**
+     * Ativa um deck. Garante que o DB principal esteja conectado
+     * e carrega o estado do deck do IndexedDB se existir.
+     */
     async activateDeck(deckId: string) {
+      await this.initDB();
+
       if (!this.decks[deckId]) {
         this.decks[deckId] = {
           id: deckId,
@@ -75,10 +84,17 @@ export const useDecksStore = defineStore("decks", {
             source: "",
             favorite: false,
           },
-          _db: null,
         };
       }
-      await this.initDB(deckId);
+
+      // Carrega estado salvo do DB
+      if (this.dbConnection) {
+        const saved = await this.dbConnection.get(STORE_NAME, deckId);
+        if (saved) {
+          Object.assign(this.decks[deckId], saved);
+        }
+      }
+
       this.activeDeckId = deckId;
     },
 
@@ -88,17 +104,11 @@ export const useDecksStore = defineStore("decks", {
       return this.decks[this.activeDeckId] || null;
     },
 
-    // salva o deck atual (função interna)
-    saveDeck(deckId: string) {
-      const deck = this.decks[deckId];
-      if (!deck?._db) return;
-      const { _db, ...toSave } = deck;
-      deck._db.put("state", toSave, "pinia");
-    },
-
-    // salva o deck atual com debounce
-    saveDeckDebounced: debounce(function (this: any, deckId: string) {
-      this.saveDeck(deckId);
+    // A função debounce agora chama o utilitário 'saveDeck' com a conexão e o deck.
+    saveDeckDebounced: debounce(function (this: any, deck: DeckState) {
+      if (this.dbConnection) {
+        saveDeck(deck, this.dbConnection);
+      }
     }, 500),
 
     // Adiciona cards à fila de níveis
@@ -111,7 +121,7 @@ export const useDecksStore = defineStore("decks", {
           deck.levelsQueue.push(c);
         }
       });
-      this.saveDeckDebounced(deck.id);
+      this.saveDeckDebounced(deck);
     },
 
     // Incrementa o contador global do deck
@@ -120,8 +130,8 @@ export const useDecksStore = defineStore("decks", {
       if (!deck) return;
       deck.globalCounter++;
 
-      this.refreshReviewQueue(); // Chame a função de atualização da fila de revisão
-      this.saveDeckDebounced(deck.id); // Salva o deck atual com debounce
+      this.refreshReviewQueue();
+      this.saveDeckDebounced(deck);
     },
 
     // atualiza o cooldown do card atual
@@ -140,11 +150,10 @@ export const useDecksStore = defineStore("decks", {
       }
       card.lastSeenAt = deck.globalCounter;
 
-      // garante que o card esteja na fila de cooldown
       if (!deck.cooldownQueue.some((c) => c.id === card.id)) {
         deck.cooldownQueue.push(card);
       }
-      this.saveDeckDebounced(deck.id);
+      this.saveDeckDebounced(deck);
     },
 
     // função para atualizar a fila de revisão
@@ -158,7 +167,7 @@ export const useDecksStore = defineStore("decks", {
       ready.sort((a, b) => a.lastSeenAt - b.lastSeenAt);
       deck.reviewQueue.push(...ready);
       deck.cooldownQueue = deck.cooldownQueue.filter((c) => !ready.includes(c));
-      this.saveDeckDebounced(deck.id);
+      this.saveDeckDebounced(deck);
     },
 
     // função para obter a próxima carta
@@ -212,7 +221,7 @@ export const useDecksStore = defineStore("decks", {
       const next = ORDEM_NIVEIS[idx + 1];
       if (next) {
         deck.currentLevel = next;
-        this.saveDeckDebounced(deck.id);
+        this.saveDeckDebounced(deck);
         return true;
       }
       return false;
@@ -228,11 +237,10 @@ export const useDecksStore = defineStore("decks", {
       const deck = this.decks[deckId];
       if (!deck) return;
 
-      // Remove do IndexedDB
-      if (deck._db) {
+      if (this.dbConnection) {
         try {
-          await deck._db.delete("state", "pinia");
-          await deck._db.close(); // fecha o DB para liberar recursos
+          // Usa o ID do deck como chave para apagar
+          await this.dbConnection.delete(STORE_NAME, deckId);
         } catch (error) {
           console.error(`Erro ao apagar deck ${deckId} do IndexedDB:`, error);
         }

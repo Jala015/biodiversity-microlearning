@@ -39,7 +39,7 @@ export async function consultarApiINat(
     return cached;
   }
 
-  console.log(`🔄 Cache miss para ${scientificName}, buscando na API...`);
+  // Cache miss:
 
   try {
     const inatUrl = `https://api.inaturalist.org/v1/taxa?q=${encodeURIComponent(
@@ -108,8 +108,8 @@ export async function consultarApiINat(
       foto,
       ancestor_ids: taxon.ancestor_ids,
     };
-
     await setCache(cacheKey, result); // Salva resultado no cache
+    await new Promise((resolve) => setTimeout(resolve, 1001)); // Adiciona um delay de 1001ms
     return result;
   } catch (error) {
     console.error(`❌ Erro ao unificar espécie ${scientificName}:`, error);
