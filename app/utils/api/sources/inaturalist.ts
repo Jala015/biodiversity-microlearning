@@ -1,3 +1,4 @@
+import { getCache, setCache } from "~/utils/function-cache";
 import type {
   INatTaxaResponse,
   INatTaxon,
@@ -29,6 +30,17 @@ import type {
 export async function consultarApiINat(
   scientificName: string,
 ): Promise<ConsultaINatResult | null> {
+  // Tenta buscar do cache primeiro
+  const cacheKey = `inat-${scientificName}`;
+  const cached = await getCache<ConsultaINatResult | null>(cacheKey);
+
+  if (cached !== null) {
+    console.log(`🎯 Cache hit para ${scientificName}`);
+    return cached;
+  }
+
+  console.log(`🔄 Cache miss para ${scientificName}, buscando na API...`);
+
   try {
     const inatUrl = `https://api.inaturalist.org/v1/taxa?q=${encodeURIComponent(
       scientificName,
@@ -64,6 +76,7 @@ export async function consultarApiINat(
       inatResp.value.results.length === 0
     ) {
       console.warn(`Nenhum resultado iNat para ${scientificName}`);
+      await setCache(cacheKey, null); // salva o null no cache para evitar chamadas desnecessárias
       return null;
     }
 
@@ -71,6 +84,7 @@ export async function consultarApiINat(
 
     if (!taxon) {
       console.warn(`Taxon não encontrado para ${scientificName}`);
+      await setCache(cacheKey, null); // salva o null no cache para evitar chamadas desnecessárias
       return null;
     }
 
@@ -86,7 +100,7 @@ export async function consultarApiINat(
         }
       : undefined;
 
-    return {
+    const result = {
       taxon,
       inatId: taxon.id,
       nome_cientifico,
@@ -94,6 +108,9 @@ export async function consultarApiINat(
       foto,
       ancestor_ids: taxon.ancestor_ids,
     };
+
+    await setCache(cacheKey, result); // Salva resultado no cache
+    return result;
   } catch (error) {
     console.error(`❌ Erro ao unificar espécie ${scientificName}:`, error);
     return null;
@@ -116,6 +133,16 @@ export async function obterTaxonsIrmaos(
     );
     return [];
   }
+
+  const cacheKey = `inat-taxons-irmaos-${correctTaxon.id}-${count}`;
+  const cached = await getCache<INatChildren[] | null>(cacheKey);
+
+  if (cached !== null) {
+    console.log(`🎯 Cache hit para táxons irmãos de ${correctTaxon.name}`);
+    return cached;
+  }
+
+  //cache miss. Buscar na api do iNat:
 
   try {
     // Usar ancestor_ids para buscar táxons do mesmo grupo taxonômico
@@ -151,15 +178,19 @@ export async function obterTaxonsIrmaos(
       return [];
     }
 
+    // caso não tenha resultados
     if (
       !inatResp.value ||
       !inatResp.value.results ||
       inatResp.value.results.length === 0
     ) {
+      await setCache(cacheKey, []);
       return [];
     }
 
+    // caso os resultados não tenham filhos
     if (!inatResp.value.results[0] || !inatResp.value.results[0].children) {
+      await setCache(cacheKey, []);
       return [];
     }
 
@@ -172,7 +203,9 @@ export async function obterTaxonsIrmaos(
       (a, b) => b.complete_species_count - a.complete_species_count,
     );
 
-    return ordenados.slice(0, count);
+    const result = ordenados.slice(0, count);
+    await setCache(cacheKey, result);
+    return result;
   } catch (error) {
     console.error(
       `❌ Erro ao buscar táxons irmãos para ${correctTaxon.name}:`,
@@ -199,6 +232,15 @@ export async function obterTaxonsPrimos(
     );
     return [];
   }
+
+  const cacheKey = `inat-taxa-primos-${correctTaxon.id}-${count}`;
+  const cachedResult = await getCache<INatChildren[]>(cacheKey);
+  if (cachedResult) {
+    console.log(`✅ Cache hit para primos de ${cacheKey}`);
+    return cachedResult;
+  }
+
+  // cache miss, buscar na API do iNat:
 
   try {
     // Usar o penúltimo ancestor_id (avô) em vez do último (pai)
@@ -240,12 +282,14 @@ export async function obterTaxonsPrimos(
       !inatResp.value.results[0] ||
       !inatResp.value.results[0].children
     ) {
+      await setCache(cacheKey, []);
       return [];
     }
 
     const avô = inatResp.value.results[0];
 
     if (!avô.children) {
+      await setCache(cacheKey, []);
       return [];
     }
 
@@ -331,7 +375,9 @@ export async function obterTaxonsPrimos(
       return tiosOrdenados.slice(0, count);
     }
 
-    return primos.slice(0, count);
+    const result = primos.slice(0, count);
+    await setCache(cacheKey, result);
+    return result;
   } catch (error) {
     console.error(
       `❌ Erro ao buscar táxons primos para ${correctTaxon.name}:`,

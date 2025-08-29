@@ -1,3 +1,4 @@
+import { getCache, setCache } from "~/utils/function-cache";
 import type { ConsultaINatResult, Especie, MediaEspecie } from "..";
 
 interface UpstashResponse<T = string> {
@@ -7,6 +8,16 @@ interface UpstashResponse<T = string> {
 export async function obterImagemCurada(
   speciesKey: string,
 ): Promise<MediaEspecie | null> {
+  const cacheKey = `redis-imagem-${speciesKey}`;
+  const cached = await getCache<MediaEspecie | null>(cacheKey);
+
+  if (cached !== null) {
+    console.log(`🎯 Cache hit para imagem Redis de ${speciesKey}`);
+    return cached;
+  }
+
+  //cache miss:
+
   try {
     const { data: img_url, error } = await useFetch<
       UpstashResponse<string | null>
@@ -45,12 +56,15 @@ export async function obterImagemCurada(
       return null;
     }
 
-    return {
+    const result = {
       identifier: img_url.value?.result ?? "",
       type: "StillImage",
       license: "CC",
       rightsHolder: img_attr.value?.result || "imagem obtida do iNaturalist",
     };
+
+    await setCache(cacheKey, result); // Salva resultado no cache
+    return result;
   } catch (error) {
     console.error(`Erro ao buscar imagem curada para ${speciesKey}:`, error);
     return null;
@@ -62,6 +76,16 @@ export async function obterMaxIdLevel(
   // FIXME
   dados: ConsultaINatResult,
 ): Promise<string> {
+  const cacheKey = `redis-maxIdLevel-${dados.inatId}`;
+  const cached = await getCache<string | null>(cacheKey);
+
+  if (cached !== null) {
+    console.log(`🎯 Cache hit para maxId Redis de ${dados.inatId}`);
+    return cached;
+  }
+
+  // Cache miss, buscar no Redis
+
   let maxLevel = "species";
   if (!dados) {
     console.error("Erro ao obter maxIdLevel. Dados inválidos");
@@ -109,13 +133,27 @@ export async function obterMaxIdLevel(
       continue;
     }
   }
+
+  // Salvar no cache
+  await setCache(`redis-maxIdLevel-${dados.inatId}`, maxLevel, 1);
+
   return maxLevel;
 }
 
 // Função para obter alternativas pré-definidas do Redis
 export async function obterAlternativasPreDefinidas(
   inatId: number,
-): Promise<Especie[]> {
+): Promise<Especie[] | null> {
+  const cacheKey = `redis-alternativas-${inatId}`;
+  const cached = await getCache<Especie[] | null>(cacheKey);
+
+  if (cached !== null) {
+    console.log(`🎯 Cache hit para alternativas no Redis de ${inatId}`);
+    return cached;
+  }
+
+  // Cache miss. Buscando alternativas.
+
   try {
     const alternativas: Especie[] = [];
 
@@ -156,7 +194,10 @@ export async function obterAlternativasPreDefinidas(
       }
     }
 
-    return alternativas.length > 0 ? alternativas : [];
+    const result = alternativas.length > 0 ? alternativas : [];
+    //salvar no cache
+    await setCache(cacheKey, result, 4);
+    return result;
   } catch (error) {
     console.error(
       `Erro ao buscar alternativas pré-definidas para iNat ID ${inatId}:`,
