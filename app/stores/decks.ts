@@ -2,8 +2,7 @@
 import { defineStore } from "pinia";
 import { openDB, type IDBPDatabase } from "idb";
 import { debounce } from "lodash";
-import { storeToRefs } from "pinia";
-import type { Especie } from "~/utils/api/types";
+import type { Especie, MediaEspecie } from "~/utils/api/types";
 
 export interface Card {
   id: string;
@@ -13,6 +12,7 @@ export interface Card {
   cooldown: number;
   lastSeenAt: number;
   alternativas_erradas: Especie[];
+  imagem: MediaEspecie;
 }
 
 export interface DeckConfig {

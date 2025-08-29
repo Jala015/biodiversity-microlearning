@@ -1,7 +1,11 @@
-import type { ConsultaINatResult, Especie } from "./api";
+import type { ConsultaINatResult, Especie, MediaEspecie } from "./api";
 
+<<<<<<< HEAD
 const redis_url = "/api/valid_species/";
 const redis_api_key = "ApPiAAIgcDEdSow3u_0gj_Y4i-PLM7zHNLf6uEuJmr4PLNwD-X13nA";
+=======
+const runtimeConfig = useRuntimeConfig();
+>>>>>>> parent of cbb2cd8 (url do redis hard coded)
 
 interface UpstashResponse<T = string> {
   result: T;
@@ -9,12 +13,33 @@ interface UpstashResponse<T = string> {
 
 export async function obterImagemCurada(
   speciesKey: string,
-): Promise<string | null> {
+): Promise<MediaEspecie | null> {
   try {
-    const { data: response, error } = await useFetch<
+    const { data: img_url, error } = await useFetch<
       UpstashResponse<string | null>
-    >(`${redis_url}/get/species:imagem:${speciesKey}`, {
+    >(`${runtimeConfig.upstashRedisRestUrl}/get/species:imagem:${speciesKey}`, {
       key: `redis-imagem-${speciesKey}`,
+      server: false,
+      default: () => ({ result: null }),
+      headers: {
+        Authorization: `Bearer ${runtimeConfig.upstashRedisRestToken}`,
+      },
+    });
+
+    if (error.value || img_url.value?.result === null) {
+      console.error(
+        `❌ Sem imagem curada ${speciesKey}:`,
+        error.value,
+      );
+      return null;
+    }
+
+    console.log(`Imagem curada para ${speciesKey}:`, img_url.value?.result);
+
+    const { data: img_attr, error: erro2 } = await useFetch<
+      UpstashResponse<string | null>
+    >(`${redis_url}/get/species:atribuicaoImg:${speciesKey}`, {
+      key: `redis-licensaimagem-${speciesKey}`,
       server: false,
       default: () => ({ result: null }),
       headers: {
@@ -22,15 +47,20 @@ export async function obterImagemCurada(
       },
     });
 
-    if (error.value) {
+    if (erro2.value) {
       console.error(
-        `❌ Erro ao obter imagem curada para ${speciesKey}:`,
-        error.value,
+        `❌ Erro ao obter licença de imagem curada para ${speciesKey}:`,
+        erro2.value,
       );
       return null;
     }
 
-    return response.value?.result || null;
+    return {
+      identifier: img_url.value?.result ?? '',
+      type: "StillImage",
+      license: "CC",
+      rightsHolder: img_attr.value?.result || "imagem obtida do iNaturalist",
+    };
   } catch (error) {
     console.error(`Erro ao buscar imagem curada para ${speciesKey}:`, error);
     return null;
@@ -60,22 +90,27 @@ export async function obterMaxIdLevel(
       const redisKey = `species:taxonomiclevel:${ancestorId}`;
       const { data: response, error } = await useFetch<
         UpstashResponse<string | null>
-      >(`${redis_url}/get/${redisKey}`, {
+      >(`${runtimeConfig.upstashRedisRestUrl}/get/${redisKey}`, {
         server: false,
         default: () => ({ result: null }),
         headers: {
-          Authorization: `Bearer ${redis_api_key}`,
+          Authorization: `Bearer ${runtimeConfig.upstashRedisRestToken}`,
         },
       });
 
+<<<<<<< HEAD
+=======
       // Debug detalhado
       console.info(`🔍 DEBUG ancestorId ${ancestorId}:`);
-      console.info(`   - URL: ${redis_url}/get/${redisKey}`);
+      console.info(
+        `   - URL: ${runtimeConfig.upstashRedisRestUrl}/get/${redisKey}`,
+      );
       console.info(`   - error.value:`, error.value);
       console.info(`   - response.value:`, response.value);
       console.info(`   - response.value?.result:`, response.value?.result);
       console.info(`   - typeof result:`, typeof response.value?.result);
 
+>>>>>>> parent of cbb2cd8 (url do redis hard coded)
       // Verificar se encontrou um valor válido no Redis (não nulo)
       if (
         !error.value &&
@@ -110,7 +145,21 @@ export async function obterAlternativasPreDefinidas(
   inatId: number,
 ): Promise<Especie[]> {
   try {
+<<<<<<< HEAD
     const alternativas: Especie[] = [];
+=======
+    const redisKey = `especies:alternativas:${inatId}`;
+    const { data: response, error } = await useFetch<
+      UpstashResponse<Record<string, string> | null>
+    >(`${runtimeConfig.upstashRedisRestUrl}/hgetall/${redisKey}`, {
+      key: `redis-alternativas-${inatId}`,
+      server: false,
+      default: () => ({ result: null }),
+      headers: {
+        Authorization: `Bearer ${runtimeConfig.upstashRedisRestToken}`,
+      },
+    });
+>>>>>>> parent of cbb2cd8 (url do redis hard coded)
 
     // Buscar cada alternativa possível (1, 2, 3)
     for (let i = 1; i <= 3; i++) {
@@ -163,13 +212,13 @@ export async function obterAlternativasPreDefinidas(
 export async function verificarConexaoRedis(): Promise<boolean> {
   try {
     const { error } = await useFetch<UpstashResponse<string>>(
-      `${redis_url}/ping`,
+      `${runtimeConfig.upstashRedisRestUrl}/ping`,
       {
         key: "redis-ping-check",
         server: false,
         default: () => ({ result: "PONG" }),
         headers: {
-          Authorization: `Bearer ${redis_api_key}`,
+          Authorization: `Bearer ${runtimeConfig.upstashRedisRestToken}`,
         },
       },
     );

@@ -11,11 +11,6 @@ import { ref, onMounted, onUnmounted } from "vue";
 import { openDB } from "idb";
 import imageCompression from "browser-image-compression";
 
-defineProps({
-    url: { type: String, required: true },
-    alt: { type: String, default: "" },
-});
-
 const props = defineProps<{ url: string; alt?: string }>();
 const imageUrl = ref<string | null>(null);
 let objectUrl: string | null = null;
@@ -43,7 +38,7 @@ onMounted(async () => {
             });
 
             blob = await imageCompression(fileFromBlob, {
-                maxSizeMB: 0.5,
+                maxSizeMB: 1,
                 maxWidthOrHeight: 1024,
                 useWebWorker: true,
             });

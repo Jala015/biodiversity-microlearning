@@ -254,14 +254,14 @@ async function construirCards(
       // 3.2 Obter imagem (Redis primeiro, senão iNat)
       let mediaFinal: MediaEspecie = dados.foto!;
       const imagemCurada = await obterImagemCurada(especiesRepresentativa);
-      if (imagemCurada) {
-        mediaFinal = {
-          identifier: imagemCurada,
-          type: "StillImage",
-          license: "Curada",
-          rightsHolder: "Curadoria",
-        };
+      if (imagemCurada != null) {
+        console.info('usando imagem curada do Redis para', especiesRepresentativa);
+        mediaFinal = imagemCurada;
       }
+
+      // Se não tiver imagem, remover o card
+      //TODO
+
 
       // 3.3 Determinar nível de dificuldade baseado na posição no ranking
       const nivel = determinarNivelDificuldadePorRanking(
@@ -307,6 +307,7 @@ async function construirCards(
                 : 1,
         lastSeenAt: 0,
         alternativas_erradas: alternativasIncorretas,
+        imagem: mediaFinal
       };
 
       cards.push(card);
@@ -362,7 +363,7 @@ export async function criarDeckAutomatico(
   circleData: { lat: number; lng: number; radiusKm: number },
   maxSpecies: number = 20,
   taxonKeys?: number[],
-) {
+): Promise<Card[]> {
   try {
     console.log("🎯 Iniciando criação de deck automático...");
 

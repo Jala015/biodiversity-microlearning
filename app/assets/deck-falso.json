@@ -1,0 +1,283 @@
+{
+  "cards": [
+    {
+      "id": "201282-1756435616120-0",
+      "taxon": "Gallinula",
+      "nomePopular": "Galinha-d'água-comum",
+      "nivel": "facil",
+      "cooldown": 4,
+      "lastSeenAt": 0,
+      "alternativas_erradas": [
+        {
+          "nome_cientifico": "Gallinula galeata",
+          "nome_popular": "Galinha-d'água"
+        },
+        {
+          "nome_cientifico": "Gallinula tenebrosa",
+          "nome_popular": "Galinha-d'água-enlutado"
+        },
+        {
+          "nome_cientifico": "Gallinula comeri",
+          "nome_popular": "Galinha-d'água-de-Gough"
+        }
+      ],
+      "imagem": {
+        "identifier": "https://inaturalist-open-data.s3.amazonaws.com/photos/171773229/medium.jpg",
+        "type": "StillImage",
+        "license": "cc-by",
+        "rightsHolder": "(c) Alexis Lours, some rights reserved (CC BY), uploaded by Alexis Lours"
+      }
+    },
+    {
+      "id": "4867-1756435626190-1",
+      "taxon": "Vanellus chilensis",
+      "nomePopular": "Quero-quero",
+      "nivel": "facil",
+      "cooldown": 4,
+      "lastSeenAt": 0,
+      "alternativas_erradas": [
+        {
+          "nome_cientifico": "Vanellus miles",
+          "nome_popular": "Abibe-de-ombro-preto"
+        },
+        {
+          "nome_cientifico": "Vanellus indicus",
+          "nome_popular": "Quero-quero"
+        },
+        {
+          "nome_cientifico": "Geum urbanum",
+          "nome_popular": "Quero-quero"
+        }
+      ],
+      "imagem": {
+        "identifier": "https://inaturalist-open-data.s3.amazonaws.com/photos/261192086/medium.jpg",
+        "type": "StillImage",
+        "license": "cc-by-nc",
+        "rightsHolder": "(c) Nicolas Mazzini, some rights reserved (CC BY-NC), uploaded by Nicolas Mazzini"
+      }
+    },
+    {
+      "id": "144455-1756435632159-2",
+      "taxon": "Ardea alba",
+      "nomePopular": "Garça-branca-grande",
+      "nivel": "medio",
+      "cooldown": 3,
+      "lastSeenAt": 0,
+      "alternativas_erradas": [
+        {
+          "nome_cientifico": "Ardea herodias",
+          "nome_popular": "Garça-branca-grande"
+        },
+        {
+          "nome_cientifico": "Argynnis paphia",
+          "nome_popular": "Garça-branca-grande"
+        },
+        {
+          "nome_cientifico": "Caracara plancus",
+          "nome_popular": "Garça-branca-grande"
+        }
+      ],
+      "imagem": {
+        "identifier": "https://inaturalist-open-data.s3.amazonaws.com/photos/56653891/medium.jpg",
+        "type": "StillImage",
+        "license": "cc-by-nc",
+        "rightsHolder": "(c) daverowe, some rights reserved (CC BY-NC)"
+      }
+    },
+    {
+      "id": "8484-1756435637031-3",
+      "taxon": "Cyanocorax chrysops",
+      "nomePopular": "Gralha-picaça",
+      "nivel": "medio",
+      "cooldown": 3,
+      "lastSeenAt": 0,
+      "alternativas_erradas": [
+        {
+          "nome_cientifico": "Cyanocorax yncas",
+          "nome_popular": "Gralha-picaça"
+        },
+        {
+          "nome_cientifico": "Cyanocorax chrysops",
+          "nome_popular": "Gralha-verde"
+        },
+        {
+          "nome_cientifico": "Cyanocorax chrysops",
+          "nome_popular": "gaio-castanho"
+        }
+      ],
+      "imagem": {
+        "identifier": "https://inaturalist-open-data.s3.amazonaws.com/photos/234531093/medium.jpg",
+        "type": "StillImage",
+        "license": "cc-by-nc",
+        "rightsHolder": "(c) abelardomendesjr, some rights reserved (CC BY-NC), uploaded by abelardomendesjr"
+      }
+    },
+    {
+      "id": "1289601-1756435640775-4",
+      "taxon": "Nannopterum brasilianum",
+      "nomePopular": "Biguá",
+      "nivel": "medio",
+      "cooldown": 3,
+      "lastSeenAt": 0,
+      "alternativas_erradas": [
+        {
+          "nome_cientifico": "Phalacrocorax brasilianus",
+          "nome_popular": "Corvo-marinho-d'orelhas"
+        },
+        {
+          "nome_cientifico": "Nannopterum auritum",
+          "nome_popular": "Biguá"
+        },
+        {
+          "nome_cientifico": "Nannopterum brasilianum",
+          "nome_popular": "Corvo-marinho-d'orelhas"
+        }
+      ],
+      "imagem": {
+        "identifier": "https://inaturalist-open-data.s3.amazonaws.com/photos/23856507/medium.jpg",
+        "type": "StillImage",
+        "license": "cc-by-nc-nd",
+        "rightsHolder": "(c) Kala Murphy King, some rights reserved (CC BY-NC-ND), uploaded by Kala Murphy King"
+      }
+    },
+    {
+      "id": "458-1756435642124-5",
+      "taxon": "Aramides",
+      "nomePopular": "Saracura-do-mato",
+      "nivel": "dificil",
+      "cooldown": 2,
+      "lastSeenAt": 0,
+      "alternativas_erradas": [
+        {
+          "nome_cientifico": "Aramides cajaneus",
+          "nome_popular": "Saracura-Três-Potes"
+        },
+        {
+          "nome_cientifico": "Aramides albiventris",
+          "nome_popular": "Saracura-de-nuca-ruiva"
+        },
+        {
+          "nome_cientifico": "Aramides ypecaha",
+          "nome_popular": "Saracuruçu"
+        }
+      ],
+      "imagem": {
+        "identifier": "https://static.inaturalist.org/photos/38306077/medium.jpg",
+        "type": "StillImage",
+        "license": null,
+        "rightsHolder": "(c) Eden Fontes, all rights reserved, uploaded by Eden Fontes"
+      }
+    },
+    {
+      "id": "12738-1756435646270-6",
+      "taxon": "Turdus rufiventris",
+      "nomePopular": "Sabiá-laranjeira",
+      "nivel": "dificil",
+      "cooldown": 2,
+      "lastSeenAt": 0,
+      "alternativas_erradas": [
+        {
+          "nome_cientifico": "Turdus migratorius",
+          "nome_popular": "Sabiá-laranjeira"
+        },
+        {
+          "nome_cientifico": "Turdus rufiventris",
+          "nome_popular": "Tordo-americano"
+        },
+        {
+          "nome_cientifico": "Turdus rufiventris",
+          "nome_popular": "Melro"
+        }
+      ],
+      "imagem": {
+        "identifier": "https://inaturalist-open-data.s3.amazonaws.com/photos/1507197/medium.jpg",
+        "type": "StillImage",
+        "license": "cc-by",
+        "rightsHolder": "(c) Nigel Voaden, some rights reserved (CC BY)"
+      }
+    },
+    {
+      "id": "4952-1756435649563-7",
+      "taxon": "Ardea cocoi",
+      "nomePopular": "Garça-moura",
+      "nivel": "desafio",
+      "cooldown": 1,
+      "lastSeenAt": 0,
+      "alternativas_erradas": [
+        {
+          "nome_cientifico": "Ardea herodias",
+          "nome_popular": "Garça-branca-grande"
+        },
+        {
+          "nome_cientifico": "Ardea cocoi",
+          "nome_popular": "Garça-real-americana"
+        },
+        {
+          "nome_cientifico": "Ardea cocoi",
+          "nome_popular": "Garça-branca-grande"
+        }
+      ],
+      "imagem": {
+        "identifier": "https://inaturalist-open-data.s3.amazonaws.com/photos/55349434/medium.jpg",
+        "type": "StillImage",
+        "license": "cc-by-nc",
+        "rightsHolder": "(c) Paul Donahue, some rights reserved (CC BY-NC), uploaded by Paul Donahue"
+      }
+    },
+    {
+      "id": "4979-1756435652089-8",
+      "taxon": "Nycticorax",
+      "nivel": "desafio",
+      "cooldown": 1,
+      "lastSeenAt": 0,
+      "alternativas_erradas": [
+        {
+          "nome_cientifico": "Nycticorax nycticorax"
+        },
+        {
+          "nome_cientifico": "Ardea herodias",
+          "nome_popular": "Garça-real-americana"
+        },
+        {
+          "nome_cientifico": "Ardea alba",
+          "nome_popular": "Garça-branca-grande"
+        }
+      ],
+      "imagem": {
+        "identifier": "https://inaturalist-open-data.s3.amazonaws.com/photos/29852324/medium.jpg",
+        "type": "StillImage",
+        "license": "cc-by",
+        "rightsHolder": "(c) David McCorquodale, some rights reserved (CC BY), uploaded by David McCorquodale"
+      }
+    },
+    {
+      "id": "16956-1756435652161-9",
+      "taxon": "Pitangus sulphuratus",
+      "nomePopular": "Bem-te-vi",
+      "nivel": "desafio",
+      "cooldown": 1,
+      "lastSeenAt": 0,
+      "alternativas_erradas": [
+        {
+          "nome_popular": "Neinei",
+          "nome_cientifico": "Megarynchus pitangua"
+        },
+        {
+          "nome_popular": "Suiriri",
+          "nome_cientifico": "Tyrannus melancholicus"
+        },
+        {
+          "nome_popular": "Cambacica",
+          "nome_cientifico": "Coereba flaveola"
+        }
+      ],
+      "imagem": {
+        "identifier": "https://inaturalist-open-data.s3.amazonaws.com/photos/1766279/medium.jpg",
+        "type": "StillImage",
+        "license": "cc-by-sa",
+        "rightsHolder": "(c) Dario Sanches, some rights reserved (CC BY-SA)"
+      }
+    }
+  ],
+  "totalCards": 10
+}
