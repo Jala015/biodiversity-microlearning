@@ -10,17 +10,14 @@ export async function obterImagemCurada(
   try {
     const { data: img_url, error } = await useFetch<
       UpstashResponse<string | null>
-    >(
-      `${import.meta.env.VITE_UPSTASH_REDIS_REST_URL}/get/species:imagem:${speciesKey}`,
-      {
-        key: `redis-imagem-${speciesKey}`,
-        server: false,
-        default: () => ({ result: null }),
-        headers: {
-          Authorization: `Bearer ${import.meta.env.VITE_UPSTASH_REDIS_REST_TOKEN}`,
-        },
+    >(`/api/valid_species/get/species:imagem:${speciesKey}`, {
+      key: `redis-imagem-${speciesKey}`,
+      server: false,
+      default: () => ({ result: null }),
+      headers: {
+        Authorization: `Bearer ${import.meta.env.VITE_UPSTASH_REDIS_REST_TOKEN}`,
       },
-    );
+    });
 
     if (error.value || img_url.value?.result === null) {
       console.error(`❌ Sem imagem curada ${speciesKey}:`, error.value);
@@ -31,17 +28,14 @@ export async function obterImagemCurada(
 
     const { data: img_attr, error: erro2 } = await useFetch<
       UpstashResponse<string | null>
-    >(
-      `${import.meta.env.VITE_UPSTASH_REDIS_REST_URL}/get/species:atribuicaoImg:${speciesKey}`,
-      {
-        key: `redis-licensaimagem-${speciesKey}`,
-        server: false,
-        default: () => ({ result: null }),
-        headers: {
-          Authorization: `Bearer ${import.meta.env.VITE_UPSTASH_REDIS_REST_TOKEN}`,
-        },
+    >(`/api/valid_species/get/species:atribuicaoImg:${speciesKey}`, {
+      key: `redis-licensaimagem-${speciesKey}`,
+      server: false,
+      default: () => ({ result: null }),
+      headers: {
+        Authorization: `Bearer ${import.meta.env.VITE_UPSTASH_REDIS_REST_TOKEN}`,
       },
-    );
+    });
 
     if (erro2.value) {
       console.error(
@@ -78,8 +72,6 @@ export async function obterMaxIdLevel(
     return maxLevel;
   }
 
-  console.info("REDIS URL", import.meta.env.VITE_UPSTASH_REDIS_REST_URL);
-
   // Iterar entre os níveis de taxonomia, do mais específico ao mais genérico
   for (let i = dados.ancestor_ids.length - 1; i >= 0; i--) {
     const ancestorId = dados.ancestor_ids[i];
@@ -88,7 +80,7 @@ export async function obterMaxIdLevel(
       const redisKey = `species:taxonomiclevel:${ancestorId}`;
       const { data: response, error } = await useFetch<
         UpstashResponse<string | null>
-      >(`${import.meta.env.VITE_UPSTASH_REDIS_REST_URL}/get/${redisKey}`, {
+      >(`/api/valid_species/get/${redisKey}`, {
         server: false,
         default: () => ({ result: null }),
         headers: {
@@ -133,7 +125,7 @@ export async function obterAlternativasPreDefinidas(
 
       const { data: response, error } = await useFetch<
         UpstashResponse<string | null>
-      >(`${import.meta.env.VITE_UPSTASH_REDIS_REST_URL}/get/${redisKey}`, {
+      >(`/api/valid_species/get/${redisKey}`, {
         key: `redis-alternativas-${inatId}-${i}`,
         server: false,
         default: () => ({ result: null }),
@@ -178,7 +170,7 @@ export async function obterAlternativasPreDefinidas(
 export async function verificarConexaoRedis(): Promise<boolean> {
   try {
     const { error } = await useFetch<UpstashResponse<string>>(
-      `${import.meta.env.VITE_UPSTASH_REDIS_REST_URL}/ping`,
+      `/api/valid_species/ping`,
       {
         key: "redis-ping-check",
         server: false,
