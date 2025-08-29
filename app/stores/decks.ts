@@ -3,7 +3,7 @@ import { defineStore } from "pinia";
 import { openDB, type IDBPDatabase } from "idb";
 import { debounce } from "lodash";
 import type { Especie, MediaEspecie } from "~/utils/api/types";
-import { app_config } from "~/utils/config";
+import app_config from "~/app_config.yaml";
 
 export interface Card {
   id: string;

@@ -4,7 +4,7 @@ import {
   obterTaxonsPrimos,
   obterEspeciesAleatorias,
 } from "../sources/inaturalist";
-import { obterAlternativasPreDefinidas } from "~/utils/redis";
+import { obterAlternativasPreDefinidas } from "~/utils/api/sources/redis";
 
 //----------------------------//
 //                            //
