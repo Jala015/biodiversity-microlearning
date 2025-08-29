@@ -1,17 +1,17 @@
 <script setup>
 import { ref } from "vue";
-import { useDeck } from "~/stores/decks";
+import { useDecksStore } from "~/stores/decks";
 import { criarDeckAutomatico } from "~/utils/api";
 import { customAlphabet } from "nanoid/non-secure";
 import { onMounted } from "vue";
 
 const nanoid = customAlphabet("1234567890abcdef", 11);
+const decksStore = useDecksStore();
 
 let deckstore_id = ref(null);
-
 let carregando = ref(false);
 
-let filtro = useTemplateRef("filtro");
+const filtro = useTemplateRef("filtro");
 
 onMounted(() => {
     deckstore_id.value = nanoid();
@@ -32,8 +32,13 @@ async function montarDeck(circulo) {
             filtro.value.taxonKeys,
         );
         console.log("deck_id.value:", deckstore_id.value);
-        const deckComposable = useDeck(deckstore_id.value);
-        deckComposable.addCards(deck.cards);
+
+        // Ativa ou cria o deck, inicializando o IndexedDB
+        await decksStore.activateDeck(deckstore_id.value);
+
+        // Adiciona os cards ao deck ativo
+        decksStore.addCards(deck.cards);
+
         console.log("Deck montado com sucesso");
         console.log("deck:", deck);
         carregando.value = false;
