@@ -1,11 +1,6 @@
 import type { ConsultaINatResult, Especie, MediaEspecie } from "./api";
 
-<<<<<<< HEAD
-const redis_url = "/api/valid_species/";
-const redis_api_key = "ApPiAAIgcDEdSow3u_0gj_Y4i-PLM7zHNLf6uEuJmr4PLNwD-X13nA";
-=======
 const runtimeConfig = useRuntimeConfig();
->>>>>>> parent of cbb2cd8 (url do redis hard coded)
 
 interface UpstashResponse<T = string> {
   result: T;
@@ -27,10 +22,7 @@ export async function obterImagemCurada(
     });
 
     if (error.value || img_url.value?.result === null) {
-      console.error(
-        `❌ Sem imagem curada ${speciesKey}:`,
-        error.value,
-      );
+      console.error(`❌ Sem imagem curada ${speciesKey}:`, error.value);
       return null;
     }
 
@@ -38,14 +30,17 @@ export async function obterImagemCurada(
 
     const { data: img_attr, error: erro2 } = await useFetch<
       UpstashResponse<string | null>
-    >(`${redis_url}/get/species:atribuicaoImg:${speciesKey}`, {
-      key: `redis-licensaimagem-${speciesKey}`,
-      server: false,
-      default: () => ({ result: null }),
-      headers: {
-        Authorization: `Bearer ${redis_api_key}`,
+    >(
+      `${runtimeConfig.upstashRedisRestUrl}/get/species:atribuicaoImg:${speciesKey}`,
+      {
+        key: `redis-licensaimagem-${speciesKey}`,
+        server: false,
+        default: () => ({ result: null }),
+        headers: {
+          Authorization: `Bearer ${runtimeConfig.upstashRedisRestToken}`,
+        },
       },
-    });
+    );
 
     if (erro2.value) {
       console.error(
@@ -56,7 +51,7 @@ export async function obterImagemCurada(
     }
 
     return {
-      identifier: img_url.value?.result ?? '',
+      identifier: img_url.value?.result ?? "",
       type: "StillImage",
       license: "CC",
       rightsHolder: img_attr.value?.result || "imagem obtida do iNaturalist",
@@ -98,19 +93,6 @@ export async function obterMaxIdLevel(
         },
       });
 
-<<<<<<< HEAD
-=======
-      // Debug detalhado
-      console.info(`🔍 DEBUG ancestorId ${ancestorId}:`);
-      console.info(
-        `   - URL: ${runtimeConfig.upstashRedisRestUrl}/get/${redisKey}`,
-      );
-      console.info(`   - error.value:`, error.value);
-      console.info(`   - response.value:`, response.value);
-      console.info(`   - response.value?.result:`, response.value?.result);
-      console.info(`   - typeof result:`, typeof response.value?.result);
-
->>>>>>> parent of cbb2cd8 (url do redis hard coded)
       // Verificar se encontrou um valor válido no Redis (não nulo)
       if (
         !error.value &&
@@ -145,21 +127,7 @@ export async function obterAlternativasPreDefinidas(
   inatId: number,
 ): Promise<Especie[]> {
   try {
-<<<<<<< HEAD
     const alternativas: Especie[] = [];
-=======
-    const redisKey = `especies:alternativas:${inatId}`;
-    const { data: response, error } = await useFetch<
-      UpstashResponse<Record<string, string> | null>
-    >(`${runtimeConfig.upstashRedisRestUrl}/hgetall/${redisKey}`, {
-      key: `redis-alternativas-${inatId}`,
-      server: false,
-      default: () => ({ result: null }),
-      headers: {
-        Authorization: `Bearer ${runtimeConfig.upstashRedisRestToken}`,
-      },
-    });
->>>>>>> parent of cbb2cd8 (url do redis hard coded)
 
     // Buscar cada alternativa possível (1, 2, 3)
     for (let i = 1; i <= 3; i++) {
@@ -167,12 +135,12 @@ export async function obterAlternativasPreDefinidas(
 
       const { data: response, error } = await useFetch<
         UpstashResponse<string | null>
-      >(`${redis_url}/get/${redisKey}`, {
+      >(`${runtimeConfig.upstashRedisRestUrl}/get/${redisKey}`, {
         key: `redis-alternativas-${inatId}-${i}`,
         server: false,
         default: () => ({ result: null }),
         headers: {
-          Authorization: `Bearer ${redis_api_key}`,
+          Authorization: `Bearer ${runtimeConfig.upstashRedisRestToken}`,
         },
       });
 
@@ -198,13 +166,13 @@ export async function obterAlternativasPreDefinidas(
       }
     }
 
-    return alternativas.length > 0 ? alternativas : null;
+    return alternativas.length > 0 ? alternativas : [];
   } catch (error) {
     console.error(
       `Erro ao buscar alternativas pré-definidas para iNat ID ${inatId}:`,
       error,
     );
-    return null;
+    return [];
   }
 }
 
