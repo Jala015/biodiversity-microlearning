@@ -1,4 +1,4 @@
-import type { ConsultaINatResult, Especie, MediaEspecie } from "./api";
+import type { ConsultaINatResult, Especie, MediaEspecie } from "..";
 
 interface UpstashResponse<T = string> {
   result: T;

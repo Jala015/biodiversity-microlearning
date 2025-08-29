@@ -1,5 +1,7 @@
 app_name: Microlearning de Biodiversidade
 
+min_cooldown: 4
+
 spaced_repetition:
   use_fuzz: true #slight random variation in review intervals to avoid review clustering
   target_retention: 0.9 # desired retention rate (0.9 = 90% correct recall)

@@ -1,4 +1,4 @@
-import { obterImagemCurada, obterMaxIdLevel } from "~/utils/redis";
+import { obterImagemCurada, obterMaxIdLevel } from "~/utils/api/sources/redis";
 import { consultarApiINat } from "./sources/inaturalist";
 import { obterEspeciesMaisComuns } from "./sources/gbif";
 import { gerarAlternativasIncorretas } from "./generators/alternativas";
@@ -9,6 +9,7 @@ import type {
   ValidSpecies,
 } from "./types";
 import type { Card, NivelDificuldade } from "~/stores/decks";
+import app_config from "../../app_config.yaml";
 
 //----------------------------//
 //                            //
@@ -255,13 +256,15 @@ async function construirCards(
       let mediaFinal: MediaEspecie = dados.foto!;
       const imagemCurada = await obterImagemCurada(especiesRepresentativa);
       if (imagemCurada != null) {
-        console.info('usando imagem curada do Redis para', especiesRepresentativa);
+        console.info(
+          "usando imagem curada do Redis para",
+          especiesRepresentativa,
+        );
         mediaFinal = imagemCurada;
       }
 
       // Se não tiver imagem, remover o card
       //TODO
-
 
       // 3.3 Determinar nível de dificuldade baseado na posição no ranking
       const nivel = determinarNivelDificuldadePorRanking(
@@ -299,15 +302,15 @@ async function construirCards(
         nivel: nivel,
         cooldown:
           nivel === "facil"
-            ? 4
+            ? app_config.min_cooldown + 4
             : nivel === "medio"
-              ? 3
+              ? app_config.min_cooldown + 3
               : nivel === "dificil"
-                ? 2
-                : 1,
+                ? app_config.min_cooldown + 2
+                : app_config.min_cooldown + 1,
         lastSeenAt: 0,
         alternativas_erradas: alternativasIncorretas,
-        imagem: mediaFinal
+        imagem: mediaFinal,
       };
 
       cards.push(card);

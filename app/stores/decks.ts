@@ -3,6 +3,7 @@ import { defineStore } from "pinia";
 import { openDB, type IDBPDatabase } from "idb";
 import { debounce } from "lodash";
 import type { Especie, MediaEspecie } from "~/utils/api/types";
+import { app_config } from "~/utils/config";
 
 export interface Card {
   id: string;
@@ -65,7 +66,7 @@ export const useAllDecksStore = defineStore("all-decks", {
           config: {
             taxaAcerto: 2,
             taxaErro: 0.5,
-            minCooldown: 3,
+            minCooldown: app_config.min_cooldown,
             pesoRevisao: 0.3,
             nome: "",
             descricao: "",
