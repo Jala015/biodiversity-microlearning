@@ -54,17 +54,48 @@ async function coletarDados(
 ) {
   console.log("🌍 FASE 1: Coletando dados das espécies...");
 
-  // 1.1 Buscar espécies mais comuns no GBIF
-  const dadosGBIF = await obterEspeciesMaisComuns({
-    lat: circleData.lat,
-    lng: circleData.lng,
-    radiusKm: circleData.radiusKm,
-    maxSpecies,
-    taxonKeys,
-  });
+  let dadosGBIF;
+  let currentRadius = circleData.radiusKm;
+  let tentativas = 0;
+  const maxTentativas = 3;
+
+  // 1.1 Buscar espécies mais comuns no GBIF com expansão automática do raio
+  while (tentativas < maxTentativas) {
+    tentativas++;
+
+    console.log(
+      `🔍 Tentativa ${tentativas}/${maxTentativas} - Raio: ${currentRadius.toFixed(1)}km`,
+    );
+
+    dadosGBIF = await obterEspeciesMaisComuns({
+      lat: circleData.lat,
+      lng: circleData.lng,
+      radiusKm: currentRadius,
+      maxSpecies,
+      taxonKeys,
+    });
+
+    if (dadosGBIF.nomes_cientificos.length > 0) {
+      if (tentativas > 1) {
+        console.log(
+          `✅ Espécies encontradas após expandir o raio para ${currentRadius.toFixed(1)}km`,
+        );
+      }
+      break;
+    }
+
+    if (tentativas < maxTentativas) {
+      console.log(
+        `⚠️ Nenhuma espécie encontrada. Expandindo raio de ${currentRadius.toFixed(1)}km para ${(currentRadius * 2).toFixed(1)}km...`,
+      );
+      currentRadius *= 2;
+    }
+  }
 
   if (dadosGBIF.nomes_cientificos.length === 0) {
-    throw new Error("Nenhuma espécie encontrada na região especificada");
+    throw new Error(
+      `Nenhuma espécie encontrada na região especificada após ${maxTentativas} tentativas (raio final: ${currentRadius.toFixed(1)}km)`,
+    );
   }
 
   // 1.2 Enriquecer com dados do iNaturalist
@@ -348,6 +379,45 @@ async function construirCards(
   return cards;
 }
 
+/**
+ * Obter fotos, nome científico, nome popular e montar Cards completos com alternativas
+ *
+ * Chamada por: criarDeckAutomatico() - função principal que cria deck automático baseado em região geográfica
+ *
+ * @deprecated Use criarDeckAutomatico() instead. Mantida para compatibilidade.
+ */
+export async function montarCardsComAlternativas(
+  scientificNames: string[],
+  maxSpecies: number,
+  counts: Map<string, number>,
+): Promise<Card[]> {
+  console.warn(
+    "⚠️ montarCardsComAlternativas está deprecated. Use criarDeckAutomatico.",
+  );
+
+  // Implementação simplificada usando a nova estrutura
+  const dadosINat = new Map<string, ConsultaINatResult>();
+
+  // Buscar dados do iNaturalist
+  for (let i = 0; i < scientificNames.slice(0, maxSpecies * 2).length; i++) {
+    const n = scientificNames[i];
+    if (!n) continue;
+    try {
+      const resultadoINat = await consultarApiINat(n);
+      if (resultadoINat) {
+        dadosINat.set(n, resultadoINat);
+      }
+    } catch (error) {
+      console.error(`❌ Erro ao buscar dados iNaturalist para ${n}:`, error);
+      continue;
+    }
+  }
+
+  const total = Array.from(counts.values()).reduce((a, b) => a + b, 0);
+  const gruposTaxon = await processarEAgrupar(dadosINat, counts);
+  return await construirCards(gruposTaxon, maxSpecies, total);
+}
+
 // ========================================
 // FUNÇÃO PRINCIPAL
 // ========================================
@@ -396,43 +466,4 @@ export async function criarDeckAutomatico(
     console.error("❌ Erro ao criar deck automático:", error);
     throw error;
   }
-}
-
-/**
- * Obter fotos, nome científico, nome popular e montar Cards completos com alternativas
- *
- * Chamada por: criarDeckAutomatico() - função principal que cria deck automático baseado em região geográfica
- *
- * @deprecated Use criarDeckAutomatico() instead. Mantida para compatibilidade.
- */
-export async function montarCardsComAlternativas(
-  scientificNames: string[],
-  maxSpecies: number,
-  counts: Map<string, number>,
-): Promise<Card[]> {
-  console.warn(
-    "⚠️ montarCardsComAlternativas está deprecated. Use criarDeckAutomatico.",
-  );
-
-  // Implementação simplificada usando a nova estrutura
-  const dadosINat = new Map<string, ConsultaINatResult>();
-
-  // Buscar dados do iNaturalist
-  for (let i = 0; i < scientificNames.slice(0, maxSpecies * 2).length; i++) {
-    const n = scientificNames[i];
-    if (!n) continue;
-    try {
-      const resultadoINat = await consultarApiINat(n);
-      if (resultadoINat) {
-        dadosINat.set(n, resultadoINat);
-      }
-    } catch (error) {
-      console.error(`❌ Erro ao buscar dados iNaturalist para ${n}:`, error);
-      continue;
-    }
-  }
-
-  const total = Array.from(counts.values()).reduce((a, b) => a + b, 0);
-  const gruposTaxon = await processarEAgrupar(dadosINat, counts);
-  return await construirCards(gruposTaxon, maxSpecies, total);
 }
