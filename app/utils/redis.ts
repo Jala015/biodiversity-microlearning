@@ -1,4 +1,4 @@
-import type { ConsultaINatResult } from "./api";
+import type { ConsultaINatResult, Especie } from "./api";
 
 const redis_url = "/api/valid_species/";
 const redis_api_key = "ApPiAAIgcDEdSow3u_0gj_Y4i-PLM7zHNLf6uEuJmr4PLNwD-X13nA";
@@ -108,48 +108,44 @@ export async function obterMaxIdLevel(
 // Função para obter alternativas pré-definidas do Redis
 export async function obterAlternativasPreDefinidas(
   inatId: number,
-): Promise<Array<{
-  nome_popular: string | undefined;
-  nome_cientifico: string;
-}> | null> {
+): Promise<Especie[]> {
   try {
-    const redisKey = `especies:alternativas:${inatId}`;
-    const { data: response, error } = await useFetch<
-      UpstashResponse<Record<string, string> | null>
-    >(`${redis_url}/hgetall/${redisKey}`, {
-      key: `redis-alternativas-${inatId}`,
-      server: false,
-      default: () => ({ result: null }),
-      headers: {
-        Authorization: `Bearer ${redis_api_key}`,
-      },
-    });
+    const alternativas: Especie[] = [];
 
-    if (error.value) {
-      console.error(
-        `❌ Erro ao obter alternativas pré-definidas para ${inatId}:`,
-        error.value,
-      );
-      return [];
-    }
-
-    if (!response.value?.result) {
-      return null;
-    }
-
-    const alternativas = [];
-    const hashData = response.result;
-
-    // Processar os dados do hash (1, 2, 3)
+    // Buscar cada alternativa possível (1, 2, 3)
     for (let i = 1; i <= 3; i++) {
-      const nomePopularKey = `${i}:nome_popular`;
-      const nomeCientificoKey = `${i}:nome_cientifico`;
+      const redisKey = `species:alternativas:${inatId}:${i}`;
 
-      if (hashData[nomeCientificoKey]) {
-        alternativas.push({
-          nome_popular: hashData[nomePopularKey] || undefined,
-          nome_cientifico: hashData[nomeCientificoKey],
-        });
+      const { data: response, error } = await useFetch<
+        UpstashResponse<string | null>
+      >(`${redis_url}/get/${redisKey}`, {
+        key: `redis-alternativas-${inatId}-${i}`,
+        server: false,
+        default: () => ({ result: null }),
+        headers: {
+          Authorization: `Bearer ${redis_api_key}`,
+        },
+      });
+
+      if (error.value) {
+        console.error(
+          `❌ Erro ao obter alternativa ${i} para ${inatId}:`,
+          error.value,
+        );
+        continue;
+      }
+
+      // Se encontrou uma alternativa, parsear o JSON
+      if (response.value?.result) {
+        try {
+          const especie = JSON.parse(response.value.result);
+          alternativas.push(especie);
+        } catch (parseError) {
+          console.error(
+            `❌ Erro ao parsear alternativa ${i} para ${inatId}:`,
+            parseError,
+          );
+        }
       }
     }
 
