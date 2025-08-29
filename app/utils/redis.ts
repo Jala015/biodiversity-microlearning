@@ -77,6 +77,8 @@ export async function obterMaxIdLevel(
     return maxLevel;
   }
 
+  console.warn(runtimeConfig.upstashRedisRestUrl);
+
   // Iterar entre os níveis de taxonomia, do mais específico ao mais genérico
   for (let i = dados.ancestor_ids.length - 1; i >= 0; i--) {
     const ancestorId = dados.ancestor_ids[i];
@@ -108,11 +110,6 @@ export async function obterMaxIdLevel(
         break;
       } else {
         console.info(`❌ ancestorId ${ancestorId} não tem maxLevel no Redis`);
-        if (ancestorId === 3) {
-          console.error(
-            `🚨 ATENÇÃO: ID 3 (Aves) deveria ter valor 'species' mas não foi encontrado!`,
-          );
-        }
       }
     } catch (error) {
       console.error(`💥 Erro consultando ${ancestorId}: ${error}`);
@@ -172,7 +169,7 @@ export async function obterAlternativasPreDefinidas(
       `Erro ao buscar alternativas pré-definidas para iNat ID ${inatId}:`,
       error,
     );
-    return [];
+    return null;
   }
 }
 
