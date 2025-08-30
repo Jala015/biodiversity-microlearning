@@ -5,7 +5,6 @@ import { gerarAlternativasIncorretas } from "./generators/alternativas";
 import type { MediaEspecie, ConsultaINatResult, ValidSpecies } from "./types";
 import type { Card, NivelDificuldade } from "~/types";
 import app_config from "../../app_config.yaml";
-import { useToastStore } from "~/stores/toast";
 
 const toast = useToastStore();
 
