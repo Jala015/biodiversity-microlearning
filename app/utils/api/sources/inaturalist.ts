@@ -15,17 +15,6 @@ import type {
 
 /**
  * Consulta a API do iNaturalist para obter dados completos de uma espécie
- *
- * Chamada por: montarCardsComAlternativas() em deck-builder.ts - para obter dados detalhados (taxon, foto, nomes) das espécies encontradas no GBIF
- */
-/**
- * Consulta a API do iNaturalist para obter dados completos de uma espécie
- *
- * O resultado inclui ancestor_ids que são usados para:
- * 1. Enriquecer ValidSpecies (evitando consultas redundantes)
- * 2. Permitir busca de táxons irmãos taxonomicamente relacionados
- *
- * Chamada por: montarCardsComAlternativas() em deck-builder.ts - para obter dados detalhados (taxon, foto, nomes) das espécies encontradas no GBIF
  */
 export async function consultarApiINat(
   scientificName: string,
@@ -35,7 +24,6 @@ export async function consultarApiINat(
   const cached = await getCache<ConsultaINatResult | null>(cacheKey);
 
   if (cached !== null) {
-    console.log(`🎯 Cache hit para ${scientificName}`);
     return cached;
   }
 
@@ -138,7 +126,6 @@ export async function obterTaxonsIrmaos(
   const cached = await getCache<INatChildren[] | null>(cacheKey);
 
   if (cached !== null) {
-    console.log(`🎯 Cache hit para táxons irmãos de ${correctTaxon.name}`);
     return cached;
   }
 
@@ -236,7 +223,6 @@ export async function obterTaxonsPrimos(
   const cacheKey = `inat-taxa-primos-${correctTaxon.id}-${count}`;
   const cachedResult = await getCache<INatChildren[]>(cacheKey);
   if (cachedResult) {
-    console.log(`✅ Cache hit para primos de ${cacheKey}`);
     return cachedResult;
   }
 
@@ -247,10 +233,6 @@ export async function obterTaxonsPrimos(
     const granparent_id =
       correctTaxon.ancestor_ids[correctTaxon.ancestor_ids.length - 2];
     const inatUrl = `https://api.inaturalist.org/v1/taxa/${granparent_id}?locale=pt-BR`;
-
-    console.log(
-      `ℹ️ Buscando táxons primos para ${correctTaxon.name} usando avô taxonômico. URL: ${inatUrl}`,
-    );
 
     await new Promise((resolve) => setTimeout(resolve, 1001)); // Adiciona um delay de 1001ms
 
@@ -315,10 +297,6 @@ export async function obterTaxonsPrimos(
 
       const tioUrl = `https://api.inaturalist.org/v1/taxa/${tio.id}?locale=pt-BR`;
 
-      console.log(
-        `ℹ️ Buscando filhos do táxon ${tio.name} (tio) para encontrar primos. URL: ${tioUrl}`,
-      );
-
       await new Promise((resolve) => setTimeout(resolve, 1001)); // Delay entre requisições
 
       const { data: tioResp, error: tioError } =
@@ -361,17 +339,10 @@ export async function obterTaxonsPrimos(
 
       // Adicionar primos à lista principal
       primos.push(...primosOrdenados);
-
-      console.log(
-        `✓ Encontrados ${primosOrdenados.length} primos do táxon ${tio.name}`,
-      );
     }
 
     // Se não encontramos primos, retornar os tios como fallback
     if (primos.length === 0) {
-      console.log(
-        `⚠️ Não foram encontrados primos verdadeiros, usando tios como fallback.`,
-      );
       return tiosOrdenados.slice(0, count);
     }
 
@@ -398,7 +369,6 @@ export async function obterEspeciesAleatorias(
   try {
     const randomPage = Math.floor(Math.random() * 100) + 1;
     const inatUrl = `https://api.inaturalist.org/v1/taxa?rank=species&is_active=true&per_page=${count * 2}&page=${randomPage}&locale=pt-BR`;
-    console.log(`ℹ️ Buscando ${count} espécies aleatórias. URL: ${inatUrl}`);
     await new Promise((resolve) => setTimeout(resolve, 1001)); // Adiciona um delay de 1001ms
     const { data: inatResp, error } = await useFetch<INatTaxaResponse>(
       inatUrl,

@@ -39,7 +39,4 @@ export { obterEspeciesMaisComuns } from "./sources/gbif";
 export { gerarAlternativasIncorretas } from "./generators/alternativas";
 
 // Construção de decks
-export {
-  montarCardsComAlternativas,
-  criarDeckAutomatico,
-} from "./deck-builder";
+export { criarDeckAutomatico } from "./deck-builder";

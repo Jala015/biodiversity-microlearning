@@ -99,18 +99,12 @@ function buscarAlternativasNoGrupo(
     });
   }
 
-  console.log(
-    `✓ Encontradas ${alternativas.length} alternativas no grupo ${taxonKey} para ${correctTaxon.name}`,
-  );
-
   return alternativas;
 }
 
 /**
  * Gera exatamente 3 alternativas incorretas para um flashcard
  * Usa os grupos taxonômicos processados por processarEAgrupar() como primeira opção
- *
- * Chamada por: montarCardsComAlternativas() em deck-builder.ts - para criar as alternativas erradas dos Cards
  */
 export async function gerarAlternativasIncorretas(
   correctTaxon: INatTaxon,
@@ -132,15 +126,8 @@ export async function gerarAlternativasIncorretas(
     correctTaxon.id,
   );
   if (alternativasPreDefinidas && alternativasPreDefinidas.length >= 3) {
-    console.log(
-      `✅ Usando alternativas pré-definidas para ${correctTaxon.name}`,
-    );
     return alternativasPreDefinidas.slice(0, 3);
   }
-
-  console.log(
-    `🎲 Gerando alternativas automaticamente para ${correctTaxon.name}`,
-  );
   let alternativas: Especie[] = [];
   const alternativasUsadas = new Set<string>(); // Para evitar duplicatas
 
@@ -164,10 +151,6 @@ export async function gerarAlternativasIncorretas(
 
   // 3. TERCEIRA PRIORIDADE: Se não tiver 3 alternativas, usar obterTaxonsIrmaos(). Não uso esse em espécies para evitar problemas com híbridos.
   if (alternativas.length < 3 && nivelTaxonomicoMaximo !== "species") {
-    console.log(
-      `⚡ Faltam ${3 - alternativas.length} alternativas, usando obterTaxonsIrmaos()...`,
-    );
-
     try {
       const taxonsIrmaos = await obterTaxonsIrmaos(correctTaxon, 5);
       for (const irmao of taxonsIrmaos) {
@@ -188,10 +171,6 @@ export async function gerarAlternativasIncorretas(
 
   // 4. QUARTA PRIORIDADE: Se obterTaxonsIrmaos falhou ou não tiver 3 alternativas, usar obterTaxonsPrimos().
   if (alternativas.length < 3) {
-    console.log(
-      `⚡ Faltam ${3 - alternativas.length} alternativas, usando obterTaxonsPrimos()...`,
-    );
-
     try {
       const taxonsPrimos = await obterTaxonsPrimos(correctTaxon, 5);
       for (const primo of taxonsPrimos) {
@@ -228,9 +207,6 @@ export async function gerarAlternativasIncorretas(
   // 5. ESTRATÉGIAS ESPECÍFICAS PARA NÍVEL DE ESPÉCIE (apenas se ainda faltarem alternativas)
   if (alternativas.length < 3 && nivelTaxonomicoMaximo === "species") {
     const faltam = 3 - alternativas.length;
-    console.log(
-      `⚡ Faltam ${faltam} alternativas, usando estratégias específicas para espécies...`,
-    );
 
     const estrategias = [];
 
@@ -317,10 +293,6 @@ export async function gerarAlternativasIncorretas(
 
   // Garantir que sempre temos exatamente 3 alternativas
   const resultado = alternativas.slice(0, 3);
-
-  console.log(
-    `✅ Geradas ${resultado.length} alternativas para ${correctTaxon.name}: ${resultado.map((a) => a.nome_cientifico).join(", ")}`,
-  );
 
   // se o correctTaxon tiver nome popular, garantir que alternativas também tenham
   if (

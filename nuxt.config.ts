@@ -7,11 +7,16 @@ export default defineNuxtConfig({
   vite: {
     plugins: [tailwindcss(), ViteYaml()],
   },
-  css: ["~/assets/app.css"],
+  css: [
+    "~/assets/app.css",
+    "notivue/notification.css",
+    "notivue/animations.css",
+  ],
   modules: [
     "@pinia/nuxt",
     "pinia-plugin-persistedstate/nuxt",
     "@nuxt/test-utils/module",
+    "notivue/nuxt",
   ],
   ssr: false,
   runtimeConfig: {
@@ -22,5 +27,8 @@ export default defineNuxtConfig({
       upstashRedisRestUrl: process.env.UPSTASH_REDIS_REST_URL,
       upstashRedisRestToken: process.env.UPSTASH_REDIS_REST_TOKEN,
     },
+  },
+  notivue: {
+    position: "bottom-right",
   },
 });

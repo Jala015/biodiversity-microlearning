@@ -116,8 +116,6 @@ describe("API iNaturalist e GBIF - Funções Atuais", () => {
         expect(card.alternativas_erradas).toBeDefined();
         expect(card.alternativas_erradas).toHaveLength(3);
       });
-
-      console.log(`✅ Deck criado com ${deck.totalCards} cards`);
     }
   }, 30000);
 

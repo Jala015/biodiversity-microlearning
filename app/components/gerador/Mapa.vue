@@ -38,8 +38,6 @@ import "leaflet/dist/leaflet.css";
 import "leaflet-draw";
 import "leaflet-draw/dist/leaflet.draw.css";
 
-import { max } from "lodash";
-
 const emit = defineEmits(["circle-drawn"]);
 
 let map = null;

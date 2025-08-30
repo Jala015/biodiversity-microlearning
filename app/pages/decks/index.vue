@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { DeckConfig } from "~/stores/decks";
 import { PhBoxArrowDown, PhMapPinSimpleArea } from "@phosphor-icons/vue";
-import { ref } from "vue";
 
 const decks = ref<
     Omit<

@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from "vue";
 import { useDecksStore } from "~/stores/decks";
+import { useToastStore } from "~/stores/notivue_store";
 import { criarDeckAutomatico } from "~/utils/api";
 import { customAlphabet } from "nanoid/non-secure";
 import { onMounted } from "vue";
@@ -22,8 +23,12 @@ function handleCircle(geojson) {
     circuloGeoJson.value = geojson; // Armazena o GeoJSON do círculo
 }
 
+const toast = useToastStore();
 async function montarDeck(circulo) {
-    console.log("Montando deck");
+    toast.setMessage("inat", "Montando deck...");
+    const notification = push.promise(() => {
+        toast.getMessage("inat");
+    });
     carregando.value = true;
     try {
         const deck = await criarDeckAutomatico(
@@ -31,7 +36,6 @@ async function montarDeck(circulo) {
             20,
             filtro.value.taxonKeys,
         );
-        console.log("deck_id.value:", deckstore_id.value);
 
         // Ativa ou cria o deck, inicializando o IndexedDB
         await decksStore.activateDeck(deckstore_id.value);
@@ -40,9 +44,10 @@ async function montarDeck(circulo) {
         decksStore.addCards(deck.cards);
 
         console.log("Deck montado com sucesso");
-        console.log("deck:", deck);
+        notification.resolve("Deck montado com sucesso");
         carregando.value = false;
     } catch (error) {
+        notification.reject("Erro ao montar deck");
         console.error("Erro ao montar deck:", error);
         carregando.value = false;
     }

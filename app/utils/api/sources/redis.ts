@@ -12,7 +12,6 @@ export async function obterImagemCurada(
   const cached = await getCache<MediaEspecie | null>(cacheKey);
 
   if (cached !== null) {
-    console.log(`🎯 Cache hit para imagem Redis de ${speciesKey}`);
     return cached;
   }
 
@@ -34,8 +33,6 @@ export async function obterImagemCurada(
       console.error(`❌ Sem imagem curada ${speciesKey}:`, error.value);
       return null;
     }
-
-    console.log(`Imagem curada para ${speciesKey}:`, img_url.value?.result);
 
     const { data: img_attr, error: erro2 } = await useFetch<
       UpstashResponse<string | null>
@@ -80,7 +77,6 @@ export async function obterMaxIdLevel(
   const cached = await getCache<string | null>(cacheKey);
 
   if (cached !== null) {
-    console.log(`🎯 Cache hit para maxId Redis de ${dados.inatId}`);
     return cached;
   }
 
@@ -99,7 +95,6 @@ export async function obterMaxIdLevel(
   // Iterar entre os níveis de taxonomia, do mais específico ao mais genérico
   for (let i = dados.ancestor_ids.length - 1; i >= 0; i--) {
     const ancestorId = dados.ancestor_ids[i];
-    console.info(`Buscando max id no nivel ${i}`);
     try {
       const redisKey = `species:taxonomiclevel:${ancestorId}`;
       const { data: response, error } = await useFetch<
@@ -120,13 +115,8 @@ export async function obterMaxIdLevel(
         response.value.result !== undefined &&
         response.value.result !== ""
       ) {
-        console.info(
-          `✅ SUCESSO! ancestorId ${ancestorId} → maxLevel: ${response.value.result}`,
-        );
         maxLevel = response.value.result;
         break;
-      } else {
-        console.info(`❌ ancestorId ${ancestorId} não tem maxLevel no Redis`);
       }
     } catch (error) {
       console.error(`💥 Erro consultando ${ancestorId}: ${error}`);
@@ -148,7 +138,6 @@ export async function obterAlternativasPreDefinidas(
   const cached = await getCache<Especie[] | null>(cacheKey);
 
   if (cached !== null) {
-    console.log(`🎯 Cache hit para alternativas no Redis de ${inatId}`);
     return cached;
   }
 

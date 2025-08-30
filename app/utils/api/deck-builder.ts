@@ -2,14 +2,12 @@ import { obterImagemCurada, obterMaxIdLevel } from "~/utils/api/sources/redis";
 import { consultarApiINat } from "./sources/inaturalist";
 import { obterEspeciesMaisComuns } from "./sources/gbif";
 import { gerarAlternativasIncorretas } from "./generators/alternativas";
-import type {
-  EspecieComDados,
-  MediaEspecie,
-  ConsultaINatResult,
-  ValidSpecies,
-} from "./types";
-import type { Card, NivelDificuldade } from "~/stores/decks";
+import type { MediaEspecie, ConsultaINatResult, ValidSpecies } from "./types";
+import type { Card, NivelDificuldade } from "~/types";
 import app_config from "../../app_config.yaml";
+import { useToastStore } from "~/stores/toast";
+
+const toast = useToastStore();
 
 //----------------------------//
 //                            //
@@ -52,7 +50,7 @@ async function coletarDados(
   maxSpecies: number,
   taxonKeys?: number[],
 ) {
-  console.log("🌍 FASE 1: Coletando dados das espécies...");
+  toast.setMessage("inat", "🌍 Listando espécies da região");
 
   let dadosGBIF;
   let currentRadius = circleData.radiusKm;
@@ -75,9 +73,17 @@ async function coletarDados(
       taxonKeys,
     });
 
+    if (!dadosGBIF || dadosGBIF) {
+      console.warn(
+        `⚠️ Nenhuma espécie encontrada após ${tentativas} tentativas`,
+      );
+      continue;
+    }
+
     if (dadosGBIF.nomes_cientificos.length > 0) {
       if (tentativas > 1) {
-        console.log(
+        toast.setMessage(
+          "inat",
           `✅ Espécies encontradas após expandir o raio para ${currentRadius.toFixed(1)}km`,
         );
       }
@@ -85,7 +91,7 @@ async function coletarDados(
     }
 
     if (tentativas < maxTentativas) {
-      console.log(
+      console.warn(
         `⚠️ Nenhuma espécie encontrada. Expandindo raio de ${currentRadius.toFixed(1)}km para ${(currentRadius * 2).toFixed(1)}km...`,
       );
       currentRadius *= 2;
@@ -99,7 +105,6 @@ async function coletarDados(
   }
 
   // 1.2 Enriquecer com dados do iNaturalist
-  console.log(`🔍 Buscando dados no iNaturalist...`);
   const dadosINat = new Map<string, ConsultaINatResult>();
   // Criar um mapa para enriquecer ValidSpecies com ancestor_ids
   const validSpeciesMap = new Map<string, ValidSpecies>();
@@ -113,6 +118,8 @@ async function coletarDados(
   });
 
   const speciesSlice = dadosGBIF.nomes_cientificos.slice(0, maxSpecies * 2);
+  toast.setMessage("inat", "🐦 Obtendo informações do iNaturalist");
+
   for (let i = 0; i < speciesSlice.length; i++) {
     const n = speciesSlice[i];
     if (!n) continue;
@@ -133,7 +140,10 @@ async function coletarDados(
     }
   }
 
-  console.log(`📊 ${dadosINat.size} espécies encontradas no iNaturalist`);
+  toast.setMessage(
+    "inat",
+    `📊 ${dadosINat.size} espécies encontradas no iNaturalist`,
+  );
 
   // Converter o mapa de volta para array
   const validSpeciesEnriquecidos = Array.from(validSpeciesMap.values());
@@ -156,10 +166,10 @@ async function processarEAgrupar(
   dadosINat: Map<string, ConsultaINatResult>,
   counts: Map<string, number>,
 ) {
-  console.log("📋 FASE 2: Processando e agrupando táxons...");
+  toast.setMessage("inat", `📋 Processando e agrupando táxons`);
 
   // 2.1 Buscar max_id_level para todas as espécies
-  console.log(`🔍 Buscando max_id_level...`);
+
   const speciesComMaxId = new Map<
     string,
     { dados: ConsultaINatResult; maxIdLevel: string }
@@ -167,12 +177,8 @@ async function processarEAgrupar(
 
   for (const [speciesKey, dados] of dadosINat) {
     if (dados.foto) {
-      console.log(
-        `🔍 Buscando max_id_level para ${dados.nome_cientifico}...`,
-        dados,
-      );
       const max_id_level = await obterMaxIdLevel(dados);
-      console.log(`Max IdLevel para ${dados.nome_cientifico}: ${max_id_level}`);
+
       speciesComMaxId.set(speciesKey, {
         dados,
         maxIdLevel: max_id_level || "species",
@@ -181,7 +187,7 @@ async function processarEAgrupar(
   }
 
   // 2.2 Agrupar espécies por táxon no nível do max_id_level
-  console.log(`📊 Agrupando por nível taxonômico...`);
+
   const gruposTaxon = new Map<
     string,
     {
@@ -229,7 +235,6 @@ async function processarEAgrupar(
     }
   }
 
-  console.log(`📊 ${gruposTaxon.size} grupos taxonômicos únicos criados`);
   return gruposTaxon;
 }
 
@@ -250,8 +255,7 @@ async function construirCards(
   maxSpecies: number,
   total: number,
 ): Promise<Card[]> {
-  console.log("🃏 FASE 3: Construindo cards...");
-
+  toast.setMessage("inat", `🃏 Construindo cards...`);
   // 3.1 Converter grupos para array e ordenar por frequência relativa (mais comum primeiro)
   const gruposOrdenados = Array.from(gruposTaxon.entries())
     .slice(0, maxSpecies) // Limitar ao número máximo de cards
@@ -261,7 +265,6 @@ async function construirCards(
       return freqB - freqA; // Ordem decrescente (mais comum primeiro)
     });
 
-  console.log("📊 Distribuição por frequência relativa:");
   gruposOrdenados.forEach(([taxonKey, grupo], index) => {
     const freq = ((grupo.countTotal / total) * 100).toFixed(2);
     console.log(
@@ -282,10 +285,6 @@ async function construirCards(
       let mediaFinal: MediaEspecie = dados.foto!;
       const imagemCurada = await obterImagemCurada(especiesRepresentativa);
       if (imagemCurada != null) {
-        console.info(
-          "usando imagem curada do Redis para",
-          especiesRepresentativa,
-        );
         mediaFinal = imagemCurada;
       }
 
@@ -299,6 +298,8 @@ async function construirCards(
       );
 
       // 3.4 Gerar alternativas incorretas
+      toast.setMessage("inat", "🤭 Gerando alternativas incorretas");
+
       const alternativasIncorretas = await gerarAlternativasIncorretas(
         dados.taxon,
         dados.nomePopularPt,
@@ -346,11 +347,6 @@ async function construirCards(
         especies.length > 1
           ? ` (agrupando ${especies.length} espécies: ${especies.join(", ")})`
           : "";
-
-      const frequenciaRelativa = ((countTotal / total) * 100).toFixed(2);
-      console.log(
-        `✓ Card criado para ${taxonNome} (${dados.nomePopularPt || "sem nome popular"}) - Nível: ${nivel} - Freq: ${frequenciaRelativa}% (ranking: ${i + 1}/${gruposOrdenados.length})${especiesInfo}`,
-      );
     } catch (error) {
       console.error(
         `❌ Erro ao criar card para ${dados.nome_cientifico}:`,
@@ -368,54 +364,7 @@ async function construirCards(
     },
     {} as Record<string, number>,
   );
-
-  console.log("📊 Distribuição final por nível:");
-  console.log(`Fácil: ${distribuicao.facil || 0} cards`);
-  console.log(`Médio: ${distribuicao.medio || 0} cards`);
-  console.log(`Difícil: ${distribuicao.dificil || 0} cards`);
-  console.log(`Desafio: ${distribuicao.desafio || 0} cards`);
-
-  console.log(`✅ Total: ${cardsProcessados} cards criados`);
   return cards;
-}
-
-/**
- * Obter fotos, nome científico, nome popular e montar Cards completos com alternativas
- *
- * Chamada por: criarDeckAutomatico() - função principal que cria deck automático baseado em região geográfica
- *
- * @deprecated Use criarDeckAutomatico() instead. Mantida para compatibilidade.
- */
-export async function montarCardsComAlternativas(
-  scientificNames: string[],
-  maxSpecies: number,
-  counts: Map<string, number>,
-): Promise<Card[]> {
-  console.warn(
-    "⚠️ montarCardsComAlternativas está deprecated. Use criarDeckAutomatico.",
-  );
-
-  // Implementação simplificada usando a nova estrutura
-  const dadosINat = new Map<string, ConsultaINatResult>();
-
-  // Buscar dados do iNaturalist
-  for (let i = 0; i < scientificNames.slice(0, maxSpecies * 2).length; i++) {
-    const n = scientificNames[i];
-    if (!n) continue;
-    try {
-      const resultadoINat = await consultarApiINat(n);
-      if (resultadoINat) {
-        dadosINat.set(n, resultadoINat);
-      }
-    } catch (error) {
-      console.error(`❌ Erro ao buscar dados iNaturalist para ${n}:`, error);
-      continue;
-    }
-  }
-
-  const total = Array.from(counts.values()).reduce((a, b) => a + b, 0);
-  const gruposTaxon = await processarEAgrupar(dadosINat, counts);
-  return await construirCards(gruposTaxon, maxSpecies, total);
 }
 
 // ========================================
