@@ -6,7 +6,7 @@ import type { MediaEspecie, ConsultaINatResult, ValidSpecies } from "./types";
 import type { Card, NivelDificuldade } from "~/types";
 import app_config from "../../app_config.yaml";
 
-const toast = useToastStore();
+const toast = useToast();
 
 //----------------------------//
 //                            //

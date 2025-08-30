@@ -1,7 +1,6 @@
 <script setup>
 import { ref } from "vue";
 import { useDecksStore } from "~/stores/decks";
-import { useToastStore } from "~/stores/notivue_store";
 import { criarDeckAutomatico } from "~/utils/api";
 import { customAlphabet } from "nanoid/non-secure";
 import { onMounted } from "vue";
@@ -23,12 +22,12 @@ function handleCircle(geojson) {
     circuloGeoJson.value = geojson; // Armazena o GeoJSON do círculo
 }
 
-const toast = useToastStore();
+const toast = useToast();
+let messageRef;
 async function montarDeck(circulo) {
-    toast.setMessage("inat", "Montando deck...");
-    const notification = push.promise(() => {
-        toast.getMessage("inat");
-    });
+    messageRef = toast.createMessageRef("inat", "Montando deck...");
+
+    const notification = push.promise(messageRef);
     carregando.value = true;
     try {
         const deck = await criarDeckAutomatico(
