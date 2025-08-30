@@ -9,6 +9,7 @@ export interface Card {
   lastSeenAt: number;
   alternativas_erradas: Especie[];
   imagem: MediaEspecie;
+  nivel_taxonomico?: string;
 }
 
 export interface DeckConfig {

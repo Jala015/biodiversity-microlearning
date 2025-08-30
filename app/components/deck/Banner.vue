@@ -2,6 +2,23 @@
 export default {
     props: {
         status_atual: "nova" | "revisao",
+        taxon_level: String | undefined,
+    },
+    methods: {
+        generoDoTaxon(taxon_level, e = false) {
+            if (!taxon_level) {
+                return e ? "e" : "o";
+            }
+            if (
+                ["espécie", "familia", "ordem", "classe"].includes(
+                    taxon_level.toLowerCase(),
+                )
+            ) {
+                return "a";
+            } else {
+                return e ? "e" : "o";
+            }
+        },
     },
 };
 </script>
@@ -13,13 +30,17 @@ export default {
             'bg-primary text-primary-content': status_atual === 'nova',
             'bg-info text-warning-content': status_atual === 'revisao',
         }"
-        class="card font-display relative border-4 border-double border-base-300 shadow-md font-light rounded-full text-center text-lg p-2 px-4 max-w-max mx-auto mb-8"
+        class="card select-none font-display relative border-4 border-double border-base-300 shadow-md font-light rounded-full text-center text-lg p-2 px-4 max-w-max mx-auto mb-8"
     >
         <span v-if="status_atual === 'nova'">
-            Vamos aprender essa espécie nova</span
+            Vamos aprender ess{{ generoDoTaxon(taxon_level, true) }}
+            {{ taxon_level || "táxon" }} nov{{
+                generoDoTaxon(taxon_level)
+            }}</span
         >
         <span v-if="status_atual === 'revisao'">
-            Vamos revisar essa espécie</span
+            Vamos revisar ess{{ generoDoTaxon(taxon_level, true) }}
+            {{ taxon_level || "táxon" }}</span
         >
         <div
             v-if="status_atual === 'nova'"

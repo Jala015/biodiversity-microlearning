@@ -6,12 +6,36 @@ const currentCard = ref();
 
 //provisorio
 import deck from "~/assets/deck-falso.json";
-currentCard.value = deck.cards[0];
+currentCard.value = deck.cards[7];
 const status_atual = ref("revisao");
+
+function traduzirTaxonLevel(level) {
+    switch (level) {
+        case "kingdom":
+            return "reino";
+        case "phylum":
+            return "filo";
+        case "class":
+            return "classe";
+        case "order":
+            return "ordem";
+        case "family":
+            return "família";
+        case "genus":
+            return "gênero";
+        case "species":
+            return "espécie";
+        default:
+            return "";
+    }
+}
 </script>
 <template>
     <!-- Banner -->
-    <DeckBanner :status_atual="status_atual" />
+    <DeckBanner
+        :status_atual="status_atual"
+        :taxon_level="traduzirTaxonLevel(currentCard.nivel_taxonomico)"
+    />
 
     <!-- Cartão com foto e perguntas -->
     <DeckQuestionCard :card="currentCard" />

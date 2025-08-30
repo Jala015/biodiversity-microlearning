@@ -229,7 +229,10 @@ export async function gerarAlternativasIncorretas(
       try {
         if (estrategia === "nome_popular_correto" && nomePopularCorreto) {
           // Nome popular correto, científico aleatório
-          const especiesAleatorias = await obterEspeciesAleatorias(3);
+          const especiesAleatorias = await obterEspeciesAleatorias(
+            3,
+            nivelTaxonomicoMaximo,
+          );
           for (const especie of especiesAleatorias) {
             if (alternativas.length >= 3) break;
             const key = `${especie.name}|${nomePopularCorreto}`;
@@ -276,7 +279,10 @@ export async function gerarAlternativasIncorretas(
       `⚠️ Apenas ${alternativas.length} alternativas geradas, completando com espécies aleatórias...`,
     );
     try {
-      const especiesAleatorias = await obterEspeciesAleatorias(5);
+      const especiesAleatorias = await obterEspeciesAleatorias(
+        5,
+        nivelTaxonomicoMaximo,
+      );
       for (const especie of especiesAleatorias) {
         if (alternativas.length >= 3) break;
         const key = `${especie.name}|${especie.preferred_common_name || ""}`;

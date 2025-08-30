@@ -95,6 +95,7 @@ export async function consultarApiINat(
       nomePopularPt,
       foto,
       ancestor_ids: taxon.ancestor_ids,
+      nivel_taxonomico: taxon.rank,
     };
     await setCache(cacheKey, result); // Salva resultado no cache
     await new Promise((resolve) => setTimeout(resolve, 1001)); // Adiciona um delay de 1001ms
@@ -365,10 +366,11 @@ export async function obterTaxonsPrimos(
  */
 export async function obterEspeciesAleatorias(
   count: number = 3,
+  rank: string = "species",
 ): Promise<INatTaxon[]> {
   try {
     const randomPage = Math.floor(Math.random() * 100) + 1;
-    const inatUrl = `https://api.inaturalist.org/v1/taxa?rank=species&is_active=true&per_page=${count * 2}&page=${randomPage}&locale=pt-BR`;
+    const inatUrl = `https://api.inaturalist.org/v1/taxa?rank=${rank}&is_active=true&per_page=${count * 2}&page=${randomPage}&locale=pt-BR`;
     await new Promise((resolve) => setTimeout(resolve, 1001)); // Adiciona um delay de 1001ms
     const { data: inatResp, error } = await useFetch<INatTaxaResponse>(
       inatUrl,

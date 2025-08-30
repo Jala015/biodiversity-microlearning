@@ -188,6 +188,7 @@ async function processarEAgrupar(
       maxIdLevel: string;
       countTotal: number;
       especies: string[];
+      nivel_taxonomico?: string;
     }
   >();
 
@@ -223,6 +224,7 @@ async function processarEAgrupar(
         maxIdLevel: maxIdLevel,
         countTotal: counts.get(speciesKey) ?? 0,
         especies: [speciesKey],
+        nivel_taxonomico: maxIdLevel,
       });
     }
   }
@@ -242,6 +244,7 @@ async function construirCards(
       maxIdLevel: string;
       countTotal: number;
       especies: string[];
+      nivel_taxonomico: string;
     }
   >,
   maxSpecies: number,
@@ -330,6 +333,7 @@ async function construirCards(
         lastSeenAt: 0,
         alternativas_erradas: alternativasIncorretas,
         imagem: mediaFinal,
+        nivel_taxonomico: maxIdLevel,
       };
 
       cards.push(card);

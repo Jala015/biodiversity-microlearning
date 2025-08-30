@@ -3,6 +3,7 @@
     {
       "id": "201282-1756435616120-0",
       "taxon": "Gallinula",
+      "nivel_taxonomico": "genus",
       "nomePopular": "Galinha-d'água-comum",
       "nivel": "facil",
       "cooldown": 4,
@@ -31,6 +32,7 @@
     {
       "id": "4867-1756435626190-1",
       "taxon": "Vanellus chilensis",
+      "nivel_taxonomico": "species",
       "nomePopular": "Quero-quero",
       "nivel": "facil",
       "cooldown": 4,
@@ -59,6 +61,7 @@
     {
       "id": "144455-1756435632159-2",
       "taxon": "Ardea alba",
+      "nivel_taxonomico": "species",
       "nomePopular": "Garça-branca-grande",
       "nivel": "medio",
       "cooldown": 3,
@@ -89,6 +92,7 @@
       "taxon": "Cyanocorax chrysops",
       "nomePopular": "Gralha-picaça",
       "nivel": "medio",
+      "nivel_taxonomico": "species",
       "cooldown": 3,
       "lastSeenAt": 0,
       "alternativas_erradas": [
@@ -116,6 +120,7 @@
       "id": "1289601-1756435640775-4",
       "taxon": "Nannopterum brasilianum",
       "nomePopular": "Biguá",
+      "nivel_taxonomico": "species",
       "nivel": "medio",
       "cooldown": 3,
       "lastSeenAt": 0,
@@ -144,6 +149,7 @@
       "id": "458-1756435642124-5",
       "taxon": "Aramides",
       "nomePopular": "Saracura-do-mato",
+      "nivel_taxonomico": "species",
       "nivel": "dificil",
       "cooldown": 2,
       "lastSeenAt": 0,
@@ -173,6 +179,7 @@
       "taxon": "Turdus rufiventris",
       "nomePopular": "Sabiá-laranjeira",
       "nivel": "dificil",
+      "nivel_taxonomico": "species",
       "cooldown": 2,
       "lastSeenAt": 0,
       "alternativas_erradas": [
@@ -201,6 +208,7 @@
       "taxon": "Ardea cocoi",
       "nomePopular": "Garça-moura",
       "nivel": "desafio",
+      "nivel_taxonomico": "species",
       "cooldown": 1,
       "lastSeenAt": 0,
       "alternativas_erradas": [
@@ -228,6 +236,7 @@
       "id": "4979-1756435652089-8",
       "taxon": "Nycticorax",
       "nivel": "desafio",
+      "nivel_taxonomico": "genus",
       "cooldown": 1,
       "lastSeenAt": 0,
       "alternativas_erradas": [
@@ -254,6 +263,7 @@
       "id": "16956-1756435652161-9",
       "taxon": "Pitangus sulphuratus",
       "nomePopular": "Bem-te-vi",
+      "nivel_taxonomico": "species",
       "nivel": "desafio",
       "cooldown": 1,
       "lastSeenAt": 0,
