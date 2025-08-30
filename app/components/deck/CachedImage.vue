@@ -2,7 +2,12 @@
     Componente Vue para exibir uma imagem que é salva comprimida em cache local (indexedDB via idb)
 -->
 <template>
-    <img v-if="imageUrl" :src="imageUrl" :alt="alt" />
+    <img
+        class="w-full object-center h-full max-h-[50vh] object-cover"
+        v-if="imageUrl"
+        :src="imageUrl"
+        :alt="alt"
+    />
     <div v-else>Carregando...</div>
 </template>
 
@@ -22,6 +27,11 @@ const dbPromise = openDB("image-cache", 1, {
 });
 
 onMounted(async () => {
+    const timeoutId = setTimeout(() => {
+        console.log("Timeout atingido, carregando imagem diretamente da URL.");
+        imageUrl.value = props.url;
+    }, 5000); // 5 segundos de timeout
+
     try {
         const db = await dbPromise;
         let blob = await db.get("images", props.url);
@@ -45,11 +55,13 @@ onMounted(async () => {
 
             await db.put("images", blob, props.url);
         }
-
+        clearTimeout(timeoutId); // Limpa o timeout
         objectUrl = URL.createObjectURL(blob);
         imageUrl.value = objectUrl;
     } catch (err) {
         console.error("Erro ao carregar imagem:", err);
+        clearTimeout(timeoutId); // Limpa o timeout em caso de erro também
+        imageUrl.value = props.url; // Tenta carregar a imagem
     }
 });
 

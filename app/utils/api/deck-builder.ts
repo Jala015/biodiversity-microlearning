@@ -139,11 +139,6 @@ async function coletarDados(
     }
   }
 
-  toast.setMessage(
-    "inat",
-    `📊 ${dadosINat.size} espécies encontradas no iNaturalist`,
-  );
-
   // Converter o mapa de volta para array
   const validSpeciesEnriquecidos = Array.from(validSpeciesMap.values());
 
@@ -165,8 +160,6 @@ async function processarEAgrupar(
   dadosINat: Map<string, ConsultaINatResult>,
   counts: Map<string, number>,
 ) {
-  toast.setMessage("inat", `📋 Processando e agrupando táxons`);
-
   // 2.1 Buscar max_id_level para todas as espécies
 
   const speciesComMaxId = new Map<

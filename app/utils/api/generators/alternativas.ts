@@ -121,6 +121,8 @@ export async function gerarAlternativasIncorretas(
     }
   >,
 ): Promise<Especie[]> {
+  //FIXME alternativas tem que ser do mesmo nivel taxonomico do taxon correto
+
   // 1. PRIMEIRA PRIORIDADE: tentar buscar alternativas pré-definidas no Redis
   const alternativasPreDefinidas = await obterAlternativasPreDefinidas(
     correctTaxon.id,
