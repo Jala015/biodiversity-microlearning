@@ -7,7 +7,7 @@ const currentCard = ref();
 //provisorio
 import deck from "~/assets/deck-falso.json";
 currentCard.value = deck.cards[0];
-const status_atual = ref("nova");
+const status_atual = ref("revisao");
 </script>
 <template>
     <!-- Banner -->

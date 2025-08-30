@@ -17,6 +17,7 @@ export default defineNuxtConfig({
     "pinia-plugin-persistedstate/nuxt",
     "@nuxt/test-utils/module",
     "notivue/nuxt",
+    "@nuxt/fonts",
   ],
   ssr: false,
   runtimeConfig: {
@@ -30,5 +31,8 @@ export default defineNuxtConfig({
   },
   notivue: {
     position: "bottom-right",
+  },
+  fonts: {
+    provider: "bunny",
   },
 });
