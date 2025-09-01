@@ -30,7 +30,7 @@ export async function consultarApiINat(
   // Cache miss:
 
   try {
-    const inatUrl = `https://api.inaturalist.org/v1/taxa?q=${encodeURIComponent(
+    const inatUrl = `${import.meta.env.VITE_HONO_URL}/api/inat/v1/taxa?q=${encodeURIComponent(
       scientificName,
     )}&locale=pt-BR`;
     console.log(
@@ -136,7 +136,7 @@ export async function obterTaxonsIrmaos(
     // Usar ancestor_ids para buscar táxons do mesmo grupo taxonômico
     const last_ancestor_id =
       correctTaxon.ancestor_ids[correctTaxon.ancestor_ids.length - 2];
-    const inatUrl = `https://api.inaturalist.org/v1/taxa/${last_ancestor_id}?locale=pt-BR`;
+    const inatUrl = `${import.meta.env.VITE_HONO_URL}/api/inat/v1/taxa/${last_ancestor_id}?locale=pt-BR`;
 
     console.log(
       `ℹ️ Buscando táxons irmãos para ${correctTaxon.name} usando ancestor_ids. URL: ${inatUrl}`,
@@ -233,7 +233,7 @@ export async function obterTaxonsPrimos(
     // Usar o penúltimo ancestor_id (avô) em vez do último (pai)
     const granparent_id =
       correctTaxon.ancestor_ids[correctTaxon.ancestor_ids.length - 2];
-    const inatUrl = `https://api.inaturalist.org/v1/taxa/${granparent_id}?locale=pt-BR`;
+    const inatUrl = `${import.meta.env.VITE_HONO_URL}/api/inat/v1/taxa/${granparent_id}?locale=pt-BR`;
 
     await new Promise((resolve) => setTimeout(resolve, 1001)); // Adiciona um delay de 1001ms
 
@@ -296,7 +296,7 @@ export async function obterTaxonsPrimos(
       if (primos.length >= count) break; // Já temos primos suficientes
       if (iterator_limiter >= 3) break; // Evitar consultas excessivas
 
-      const tioUrl = `https://api.inaturalist.org/v1/taxa/${tio.id}?locale=pt-BR`;
+      const tioUrl = `${import.meta.env.VITE_HONO_URL}/api/inat/v1/taxa/${tio.id}?locale=pt-BR`;
 
       await new Promise((resolve) => setTimeout(resolve, 1001)); // Delay entre requisições
 
@@ -370,7 +370,7 @@ export async function obterEspeciesAleatorias(
 ): Promise<INatTaxon[]> {
   try {
     const randomPage = Math.floor(Math.random() * 100) + 1;
-    const inatUrl = `https://api.inaturalist.org/v1/taxa?rank=${rank}&is_active=true&per_page=${count * 2}&page=${randomPage}&locale=pt-BR`;
+    const inatUrl = `${import.meta.env.VITE_HONO_URL}/api/inat/v1/taxa?rank=${rank}&is_active=true&per_page=${count * 2}&page=${randomPage}&locale=pt-BR`;
     await new Promise((resolve) => setTimeout(resolve, 1001)); // Adiciona um delay de 1001ms
     const { data: inatResp, error } = await useFetch<INatTaxaResponse>(
       inatUrl,

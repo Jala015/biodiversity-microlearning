@@ -19,6 +19,7 @@ onMounted(() => {
 
 const circuloGeoJson = ref(null);
 function handleCircle(geojson) {
+    console.log("🗺️⭕", geojson);
     circuloGeoJson.value = geojson; // Armazena o GeoJSON do círculo
 }
 

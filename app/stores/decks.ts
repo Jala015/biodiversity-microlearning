@@ -78,11 +78,12 @@ export const useDecksStore = defineStore("decks", {
             taxaErro: 0.5,
             minCooldown: app_config.min_cooldown,
             pesoRevisao: 0.3,
-            nome: "",
+            nome: deckId, //TODO adaptar para filtros de fauna e local
             descricao: "",
             id: deckId,
-            source: "",
+            source: "inat",
             favorite: false,
+            data_criacao: new Date(),
           },
         };
       }

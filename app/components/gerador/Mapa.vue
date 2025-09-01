@@ -70,7 +70,7 @@ const createDefaultCircle = (userLocation) => {
     emit("circle-drawn", {
         lat: userLocation.lat,
         lng: userLocation.lng,
-        radiusKm: DEFAULT_RADIUS_METERS / 1000, // Converte metros para km
+        radiusKm: parseFloat((DEFAULT_RADIUS_METERS / 1000).toFixed(1)), // converte metros para km com uma casa decimal
     });
 };
 
@@ -193,7 +193,7 @@ onMounted(() => {
         emit("circle-drawn", {
             lat: center.lat,
             lng: center.lng,
-            radiusKm: radius / 1000, // Converte metros para km
+            radiusKm: parseFloat((radius / 1000).toFixed(1)), // Converte metros para km com 1 casa decimal
         });
 
         // Reabilita o desenho para permitir novos círculos

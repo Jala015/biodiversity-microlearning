@@ -22,6 +22,7 @@ export interface DeckConfig {
   descricao: string;
   source: string;
   favorite?: boolean;
+  data_criacao: Date;
 }
 
 export type NivelDificuldade = "facil" | "medio" | "dificil" | "desafio";

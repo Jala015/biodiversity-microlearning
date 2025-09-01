@@ -37,12 +37,7 @@ export async function obterEspeciesMaisComuns(opcoes: SearchOptions): Promise<{
     });
   }
 
-  let url = "";
-  if (import.meta.dev) {
-    url = `https://api.gbif.org/v1/occurrence/search?${params.toString()}`;
-  } else {
-    url = `/api/gbif/occurrence/search?${params.toString()}`;
-  }
+  let url = `${import.meta.env.VITE_HONO_URL}/api/gbif/v1/occurrence/search?${params.toString()}`;
 
   try {
     // Usar useFetch com URL direta do GBIF (Vercel rewrites vai fazer o proxy)
@@ -89,7 +84,7 @@ export async function obterEspeciesMaisComuns(opcoes: SearchOptions): Promise<{
       if (!speciesKey) continue;
       try {
         // Buscar dados básicos do GBIF
-        const speciesUrl = `/api/gbif/species/${speciesKey}`;
+        const speciesUrl = `${import.meta.env.VITE_HONO_URL}/api/gbif/v1/species/${speciesKey}`;
         const { data: speciesData } = await useFetch<any>(speciesUrl, {
           key: `gbif-species-${speciesKey}`,
           server: false,

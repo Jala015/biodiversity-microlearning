@@ -10,6 +10,7 @@ currentCard.value = deck.cards[7];
 const status_atual = ref("revisao");
 
 function traduzirTaxonLevel(level) {
+    if (!level) return "";
     switch (level) {
         case "kingdom":
             return "reino";
@@ -34,7 +35,7 @@ function traduzirTaxonLevel(level) {
     <!-- Banner -->
     <DeckBanner
         :status_atual="status_atual"
-        :taxon_level="traduzirTaxonLevel(currentCard.nivel_taxonomico)"
+        :taxon_level="traduzirTaxonLevel(currentCard?.nivel_taxonomico)"
     />
 
     <!-- Cartão com foto e perguntas -->
