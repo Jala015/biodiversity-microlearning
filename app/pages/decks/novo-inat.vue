@@ -51,14 +51,11 @@ async function montarDeck(circulo: {
 
         const nome = `${cidade}: ${filtros}`;
 
-        console.info("nome do deck:", nome);
         // Cria o deck, inicializando o IndexedDB
-        await decksStore.activateDeck(deckstore_id.value, "teste");
-        console.info("deck criado no idb");
+        await decksStore.activateDeck(deckstore_id.value, nome);
         // Adiciona os cards ao deck ativo
         decksStore.addCards(deck.cards);
 
-        console.log("Deck montado com sucesso");
         notification.resolve("Deck montado com sucesso");
         carregando.value = false;
     } catch (error) {

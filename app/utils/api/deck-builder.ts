@@ -262,9 +262,6 @@ async function construirCards(
 
   gruposOrdenados.forEach(([taxonKey, grupo], index) => {
     const freq = ((grupo.countTotal / total) * 100).toFixed(2);
-    console.log(
-      `${index + 1}. ${grupo.dados.nome_cientifico} - ${freq}% (${grupo.countTotal}/${total})`,
-    );
   });
 
   const cards: Card[] = [];
@@ -344,10 +341,7 @@ async function construirCards(
           ? ` (agrupando ${especies.length} espécies: ${especies.join(", ")})`
           : "";
     } catch (error) {
-      console.error(
-        `❌ Erro ao criar card para ${dados.nome_cientifico}:`,
-        error,
-      );
+      console.error(`❌ Erro ao criar card`, error);
       continue;
     }
   }

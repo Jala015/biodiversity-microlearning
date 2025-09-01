@@ -37,9 +37,6 @@ export async function consultarApiINat(
       scientificName,
     )}&locale=pt-Br`;
 
-    console.log(
-      `ℹ️ Consultando iNaturalist para ${scientificName}. URL: ${inatUrl}`,
-    );
     let { data: inatResp, error } = await useFetch<INatTaxaResponse>(
       decodeURIComponent(inatUrl),
       {
@@ -83,7 +80,6 @@ export async function consultarApiINat(
       !inatResp.value.results ||
       inatResp.value.results.length === 0
     ) {
-      console.warn(`Nenhum resultado iNat para ${scientificName}`);
       await setCache(cacheKey, null); // salva o null no cache para evitar chamadas desnecessárias
       return null;
     }
@@ -121,7 +117,6 @@ export async function consultarApiINat(
     await new Promise((resolve) => setTimeout(resolve, 1001)); // Adiciona um delay de 1001ms
     return result;
   } catch (error) {
-    console.error(`❌ Erro ao unificar espécie ${scientificName}:`, error);
     return null;
   }
 }
@@ -137,9 +132,6 @@ export async function obterTaxonsIrmaos(
   count: number = 5,
 ): Promise<INatChildren[]> {
   if (!correctTaxon.ancestor_ids || correctTaxon.ancestor_ids.length === 0) {
-    console.warn(
-      `Táxon ${correctTaxon.name} não possui ancestor_ids, não é possível buscar irmãos.`,
-    );
     return [];
   }
 
@@ -158,10 +150,6 @@ export async function obterTaxonsIrmaos(
       correctTaxon.ancestor_ids[correctTaxon.ancestor_ids.length - 2];
     const inatUrl = `${import.meta.env.VITE_HONO_URL}/api/inat/v1/taxa/${last_ancestor_id}?locale=pt-BR`;
     const fallbackUrl = `https://api.inaturalist.org/v1/taxa/${last_ancestor_id}?locale=pt-BR`;
-
-    console.log(
-      `ℹ️ Buscando táxons irmãos para ${correctTaxon.name} usando ancestor_ids. URL: ${inatUrl}`,
-    );
 
     await new Promise((resolve) => setTimeout(resolve, 1001)); // Adiciona um delay de 1001ms
 
@@ -192,10 +180,6 @@ export async function obterTaxonsIrmaos(
           }),
         });
       if (error2.value) {
-        console.error(
-          `❌ Erro ao buscar táxons irmãos para ${correctTaxon.name} na URL ${inatUrl}:`,
-          error2,
-        );
         return [];
       }
       inatResp.value = inatResp2.value;
@@ -230,10 +214,6 @@ export async function obterTaxonsIrmaos(
     await setCache(cacheKey, result);
     return result;
   } catch (error) {
-    console.error(
-      `❌ Erro ao buscar táxons irmãos para ${correctTaxon.name}:`,
-      error,
-    );
     return [];
   }
 }
@@ -250,9 +230,6 @@ export async function obterTaxonsPrimos(
   count: number = 5,
 ): Promise<INatChildren[]> {
   if (!correctTaxon.ancestor_ids || correctTaxon.ancestor_ids.length < 2) {
-    console.warn(
-      `Táxon ${correctTaxon.name} não possui ancestor_ids suficientes para buscar primos.`,
-    );
     return [];
   }
 
@@ -300,10 +277,6 @@ export async function obterTaxonsPrimos(
           }),
         });
       if (error2.value) {
-        console.error(
-          `❌ Erro ao buscar táxons primos para ${correctTaxon.name} na URL ${fallbackUrl}:`,
-          error,
-        );
         return [];
       }
       inatResp.value = inatResp2.value;
@@ -386,10 +359,6 @@ export async function obterTaxonsPrimos(
             }),
           });
         if (tioError2.value) {
-          console.error(
-            `❌ Erro ao buscar filhos do táxon ${tio.name} na URL ${tioUrl}:`,
-            tioError2,
-          );
           continue; // Tentar próximo tio
         }
         tioResp.value = tioResp2.value;
@@ -426,10 +395,6 @@ export async function obterTaxonsPrimos(
     await setCache(cacheKey, result);
     return result;
   } catch (error) {
-    console.error(
-      `❌ Erro ao buscar táxons primos para ${correctTaxon.name}:`,
-      error,
-    );
     return [];
   }
 }
@@ -476,10 +441,6 @@ export async function obterEspeciesAleatorias(
           }),
         });
       if (error2.value) {
-        console.error(
-          `❌ Erro ao buscar espécies aleatórias na URL ${inatUrl}:`,
-          error.value,
-        );
         return [];
       }
       inatResp.value = inatResp2.value;

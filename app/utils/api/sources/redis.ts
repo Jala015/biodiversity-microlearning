@@ -30,7 +30,6 @@ export async function obterImagemCurada(
     });
 
     if (error.value || img_url.value?.result === null) {
-      console.error(`❌ Sem imagem curada ${speciesKey}:`, error.value);
       return null;
     }
 
