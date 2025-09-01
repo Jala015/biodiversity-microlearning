@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { ref } from "vue";
 import { useDecksStore } from "~/stores/decks";
 import { criarDeckAutomatico } from "~/utils/api";
@@ -26,7 +26,11 @@ function handleCircle(geojson) {
 
 const toast = useToast();
 let messageRef;
-async function montarDeck(circulo) {
+async function montarDeck(circulo: {
+    lat: number;
+    lng: number;
+    radius: number;
+}) {
     messageRef = toast.createMessageRef("inat", "Montando deck...");
 
     const notification = push.promise(messageRef);
@@ -38,10 +42,7 @@ async function montarDeck(circulo) {
             filtro.value.taxonKeys,
         );
 
-        const cidade = await obterNomeCidade(
-            circulo.coordinates[0],
-            circulo.coordinates[1],
-        );
+        const cidade = await obterNomeCidade(circulo.lat, circulo.lng);
 
         //unir os nomes de filtros com vírgula e o último com 'e'
         const filtros = filtro.value?.filtros_str
