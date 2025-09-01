@@ -44,15 +44,16 @@ async function montarDeck(circulo) {
         );
 
         //unir os nomes de filtros com vírgula e o último com 'e'
-        const filtros = filtro.value.filtros_str
-            .join(", ")
-            .replace(/,(?!.*,)/g, " e ");
+        const filtros = filtro.value?.filtros_str
+            ? filtro.value.filtros_str.join(", ").replace(/,(?!.*,)/g, " e ")
+            : "";
 
         const nome = `${cidade}: ${filtros}`;
 
+        console.info("nome do deck:", nome);
         // Cria o deck, inicializando o IndexedDB
-        await decksStore.activateDeck(deckstore_id.value, nome);
-
+        await decksStore.activateDeck(deckstore_id.value, "teste");
+        console.info("deck criado no idb");
         // Adiciona os cards ao deck ativo
         decksStore.addCards(deck.cards);
 
