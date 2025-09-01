@@ -12,7 +12,7 @@ defineProps<{
         <button
             v-for="deck in decks"
             :key="deck.config.id"
-            class="stack h-48 aspect-video cursor-pointer!"
+            class="stack h-48 aspect-video cursor-pointer! text-left"
             @click="$emit('selecionar', deck.config.id)"
         >
             <div

@@ -80,7 +80,7 @@ body {
 }
 
 @theme {
-    --font-sans: "Alatsi", "Noto Color Emoji", "sans-serif";
+    --font-sans: "IBM Plex Sans", "Noto Color Emoji", "sans-serif";
     --font-display: "Poetsen One", "sans-serif";
     --font-emoji: "Noto Color Emoji", "sans-serif";
 }

@@ -3,6 +3,8 @@ import { computed } from "vue";
 
 const selectedIds = ref([]);
 
+const expandir = ref(false);
+
 const grupos = ref([
     { nome: "Animais", gbifId: 1, nivel: 1 },
     { nome: "Vertebrados", gbifId: 44, nivel: 2 },
@@ -81,38 +83,55 @@ defineExpose({
 </script>
 
 <template>
-    <h2 class="mb-0">Filtrar grupos</h2>
-    <p class="italic">Deixe em branco para incluir todos os seres vivos</p>
-    <ul class="list divide-y divide-base-content/10">
-        <label
-            class="label mx-2 py-2"
-            v-for="grupo in grupos"
-            :key="grupo.gbifId"
-            :class="{
-                'text-success/50': isGrupoDesabilitado(grupo),
-                'text-success': selectedIds.includes(grupo.gbifId),
-            }"
-            :style="{ paddingLeft: `${grupo.nivel * 2}rem` }"
-        >
-            <input
-                type="checkbox"
-                class="checkbox checkbox-sm"
-                :value="grupo.gbifId"
-                v-model="selectedIds"
-                :class="{
-                    'checkbox-success': isGrupoDesabilitado(grupo),
-                    'checkbox-warning':
-                        !selectedIds.includes(grupo.gbifId) &&
-                        temFilhosSelecionados(grupo),
-                    'checkbox-error':
-                        !isGrupoDesabilitado(grupo) &&
-                        !temFilhosSelecionados(grupo) &&
-                        selectedIdsFiltrados.length > 0 &&
-                        !selectedIds.includes(grupo.gbifId),
-                }"
-                :disabled="isGrupoDesabilitado(grupo)"
-            />
-            {{ grupo.nome }}
-        </label>
-    </ul>
+    <div class="collapse bg-base-200 border-base-300 border my-4">
+        <input type="checkbox" v-model="expandir" />
+        <div class="collapse-title">
+            <div class="m-0! font-semibold text-lg">Filtrar grupos</div>
+            <div class="italic" v-if="expandir">
+                Deixe em branco para incluir todos os seres vivos
+            </div>
+
+            <div class="italic" v-else>
+                {{
+                    filtrosStr.length > 0
+                        ? filtrosStr.join(", ").replace(/,(?!.*,)/g, " e ")
+                        : "Todos os seres vivos"
+                }}
+            </div>
+        </div>
+        <div class="collapse-content text-sm">
+            <ul class="list divide-y divide-base-content/10">
+                <label
+                    class="label mx-2 py-2"
+                    v-for="grupo in grupos"
+                    :key="grupo.gbifId"
+                    :class="{
+                        'text-success/50': isGrupoDesabilitado(grupo),
+                        'text-success': selectedIds.includes(grupo.gbifId),
+                    }"
+                    :style="{ paddingLeft: `${grupo.nivel * 2}rem` }"
+                >
+                    <input
+                        type="checkbox"
+                        class="checkbox checkbox-sm"
+                        :value="grupo.gbifId"
+                        v-model="selectedIds"
+                        :class="{
+                            'checkbox-success': isGrupoDesabilitado(grupo),
+                            'checkbox-warning':
+                                !selectedIds.includes(grupo.gbifId) &&
+                                temFilhosSelecionados(grupo),
+                            'checkbox-error':
+                                !isGrupoDesabilitado(grupo) &&
+                                !temFilhosSelecionados(grupo) &&
+                                selectedIdsFiltrados.length > 0 &&
+                                !selectedIds.includes(grupo.gbifId),
+                        }"
+                        :disabled="isGrupoDesabilitado(grupo)"
+                    />
+                    {{ grupo.nome }}
+                </label>
+            </ul>
+        </div>
+    </div>
 </template>
