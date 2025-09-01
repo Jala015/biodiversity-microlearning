@@ -41,6 +41,9 @@ export async function consultarApiINat(
       {
         key: `inat-taxa-${btoa(scientificName).slice(0, 10)}`,
         server: false,
+        headers: {
+          "X-API-Key": import.meta.env.VITE_HONO_API_KEY,
+        },
         default: () => ({
           results: [],
           total_results: 0,
@@ -149,6 +152,9 @@ export async function obterTaxonsIrmaos(
       {
         key: `inat-taxa-${last_ancestor_id}`,
         server: false,
+        headers: {
+          "X-API-Key": import.meta.env.VITE_HONO_API_KEY,
+        },
         default: () => ({
           results: [],
           total_results: 0,
@@ -242,6 +248,9 @@ export async function obterTaxonsPrimos(
       {
         key: `inat-taxa-grandparent-${granparent_id}`,
         server: false,
+        headers: {
+          "X-API-Key": import.meta.env.VITE_HONO_API_KEY,
+        },
         default: () => ({
           results: [],
           total_results: 0,
@@ -304,6 +313,9 @@ export async function obterTaxonsPrimos(
         await useFetch<INatTaxaResponse>(tioUrl, {
           key: `inat-taxa-uncle-${tio.id}`,
           server: false,
+          headers: {
+            "X-API-Key": import.meta.env.VITE_HONO_API_KEY,
+          },
           default: () => ({
             results: [],
             total_results: 0,
@@ -377,6 +389,9 @@ export async function obterEspeciesAleatorias(
       {
         key: `inat-random-${randomPage}-${count}`,
         server: false,
+        headers: {
+          "X-API-Key": import.meta.env.VITE_HONO_API_KEY,
+        },
         default: () => ({
           results: [],
           total_results: 0,

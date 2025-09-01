@@ -40,7 +40,6 @@ export async function obterEspeciesMaisComuns(opcoes: SearchOptions): Promise<{
   let url = `${import.meta.env.VITE_HONO_URL}/api/gbif/v1/occurrence/search?${params.toString()}`;
 
   try {
-    // Usar useFetch com URL direta do GBIF (Vercel rewrites vai fazer o proxy)
     const { data: response, error } = await useFetch<GbifOccResponse>(
       decodeURIComponent(url),
       {
@@ -49,6 +48,7 @@ export async function obterEspeciesMaisComuns(opcoes: SearchOptions): Promise<{
         default: () => ({ facets: [] }),
         headers: {
           "Cache-Control": "max-age=3600",
+          "X-API-Key": import.meta.env.VITE_HONO_API_KEY,
         },
       },
     );
@@ -88,6 +88,9 @@ export async function obterEspeciesMaisComuns(opcoes: SearchOptions): Promise<{
         const { data: speciesData } = await useFetch<any>(speciesUrl, {
           key: `gbif-species-${speciesKey}`,
           server: false,
+          headers: {
+            "X-API-Key": import.meta.env.VITE_HONO_API_KEY,
+          },
           default: () => ({}),
         });
 

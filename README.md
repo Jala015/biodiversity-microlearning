@@ -133,6 +133,13 @@ Aprendizado contextualizado com espécies realmente presentes na sua região, au
 - **Fonte de Dados**:
   - API do GBIF para espécies locais (decks automáticos)
   - Database para decks curados, com CMS para editores (planejado)
+- **API reverse proxy**:
+  - API [Hono](https://hono.dev/) com caching
+    - Chaves
+      - VITE_HONO_API_KEY
+      - VITE_HONO_URL
+    - [Repositório](https://github.com/Jala015/biodiversity-microlearning-hono)
+- **Banco de dados curados**: Redis
 - **Gerenciador de Pacotes Recomendado**: Bun
 
 ### Funcionalidades Implementadas
