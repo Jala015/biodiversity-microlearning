@@ -30,6 +30,19 @@ onMounted(() => {
         botoes.value as unknown as string[],
     ) as unknown as Especie[];
 });
+
+const emit = defineEmits(["resposta"]);
+
+const bloquear = ref(false);
+
+const handleChute = (correta: boolean) => {
+    bloquear.value = true;
+    if (correta) {
+        emit("resposta", true);
+    } else {
+        emit("resposta", false);
+    }
+};
 </script>
 
 <template>
@@ -48,9 +61,20 @@ onMounted(() => {
             </div>
         </div>
     </div>
-    <div class="grid grid-cols-2 gap-4 max-w-prose mx-auto mt-8">
+    <div
+        class="grid grid-cols-2 gap-4 max-w-prose mx-auto mt-8"
+        :class="{
+            'pointer-events-none': bloquear,
+        }"
+    >
         <button
+            @click="handleChute(alternativa.correta ?? false)"
             v-for="alternativa in botoes"
+            :class="{
+                'focus:bg-error focus:text-error-content': !alternativa.correta,
+                'focus:bg-success focus:text-success-content':
+                    alternativa.correta,
+            }"
             class="card hover:outline-1 outline-0 outline-transparent outline-offset-4 hover:outline-base-content/50 focus:outline-2! focus:outline-solid focus:outline-base-content/80 focus:outline-offset-0 hover:scale-[102%] duration-300 ease-in-out cursor-pointer transition-all bg-base-100 p-2 w-full h-18 flex flex-col justify-center items-center text-center"
         >
             <div class="italic text-lg">

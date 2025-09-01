@@ -29,6 +29,9 @@ export default defineNuxtConfig({
       upstashRedisRestToken: process.env.UPSTASH_REDIS_REST_TOKEN,
     },
   },
+  app: {
+    pageTransition: { name: "page", mode: "out-in" },
+  },
   notivue: {
     position: "bottom-right",
   },

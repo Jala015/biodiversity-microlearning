@@ -9,17 +9,23 @@ defineProps<{
 
 <template>
     <div class="flex gap-3 flex-col items-center justify-center">
-        <div
+        <button
             v-for="deck in decks"
             :key="deck.config.id"
-            class="stack h-48 aspect-video"
+            class="stack h-48 aspect-video cursor-pointer!"
+            @click="$emit('selecionar', deck.config.id)"
         >
             <div
-                class="card shadow-md bg-base-100 dark:brightness-125 overflow-clip"
+                class="card outline-2 outline-offset-4 transition-all outline-base-content/0 duration-75 hover:outline-base-content/50 shadow-md bg-base-100 dark:brightness-125 overflow-clip"
             >
                 <DeckCachedImage
+                    v-if="deck.levelsQueue[0] || deck.reviewQueue[0]"
                     class="-z-10 absolute opacity-5"
-                    :url="deck.levelsQueue[0].imagem.identifier"
+                    :url="
+                        deck.levelsQueue[0]?.imagem.identifier ??
+                        deck.reviewQueue[0]?.imagem.identifier ??
+                        ''
+                    "
                 />
                 <div class="tag" v-if="deck.config.favorite">
                     <PhTagChevron weight="fill" />
@@ -62,7 +68,7 @@ defineProps<{
             <div class="card shadow-md bg-base-200 dark:brightness-105">
                 <div class="card-body"></div>
             </div>
-        </div>
+        </button>
     </div>
 </template>
 

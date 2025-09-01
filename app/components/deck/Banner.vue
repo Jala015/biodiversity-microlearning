@@ -1,26 +1,30 @@
-<script>
-export default {
-    props: {
-        status_atual: "nova" | "revisao",
-        taxon_level: String | undefined,
+<script setup>
+defineProps({
+    status_atual: {
+        type: String,
+        default: "nova",
+        validator: (value) => ["nova", "revisao"].includes(value),
     },
-    methods: {
-        generoDoTaxon(taxon_level, e = false) {
-            if (!taxon_level) {
-                return e ? "e" : "o";
-            }
-            if (
-                ["espécie", "familia", "ordem", "classe"].includes(
-                    taxon_level.toLowerCase(),
-                )
-            ) {
-                return "a";
-            } else {
-                return e ? "e" : "o";
-            }
-        },
+    taxon_level: {
+        type: String,
+        default: undefined,
     },
-};
+});
+
+function generoDoTaxon(taxon_level, e = false) {
+    if (!taxon_level) {
+        return e ? "e" : "o";
+    }
+    if (
+        ["espécie", "familia", "ordem", "classe"].includes(
+            taxon_level.toLowerCase(),
+        )
+    ) {
+        return "a";
+    } else {
+        return e ? "e" : "o";
+    }
+}
 </script>
 
 <template>

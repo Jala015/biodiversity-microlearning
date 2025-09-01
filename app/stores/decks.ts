@@ -12,7 +12,6 @@ export const ORDEM_NIVEIS: NivelDificuldade[] = [
   "desafio",
 ];
 
-// Remova a propriedade _db da interface DeckState.
 export interface DeckState {
   id: string;
   globalCounter: number;
@@ -23,12 +22,24 @@ export interface DeckState {
   config: DeckConfig;
 }
 
-// Esta função agora está fora da store e não depende de 'this'.
-function saveDeck(deck: DeckState, db: IDBPDatabase) {
+// Função para serializar deck de forma segura para IndexedDB
+function serializeDeck(deck: DeckState): DeckState {
+  // Usa JSON.parse(JSON.stringify()) para criar uma cópia profunda
+  // e remover qualquer propriedade não serializável
+  return JSON.parse(JSON.stringify(toRaw(deck)));
+}
+
+// Função para salvar deck no IndexedDB
+async function saveDeck(deck: DeckState, db: IDBPDatabase) {
   if (!db) return;
-  // A chave agora é o ID do deck
-  const rawDeck = toRaw(deck);
-  db.put("state", rawDeck, deck.id);
+
+  try {
+    const serializedDeck = serializeDeck(deck);
+    await db.put("state", serializedDeck, deck.id);
+  } catch (error) {
+    console.error("Erro ao salvar deck no IndexedDB:", error);
+    console.error("Deck que causou erro:", deck);
+  }
 }
 
 const DB_NAME = "decks-main-db";
@@ -38,7 +49,6 @@ export const useDecksStore = defineStore("decks", {
   state: () => ({
     activeDeckId: null as string | null,
     decks: {} as Record<string, DeckState>,
-    // Uma única conexão para o banco de dados principal
     dbConnection: null as IDBPDatabase | null,
   }),
 
@@ -78,7 +88,7 @@ export const useDecksStore = defineStore("decks", {
             taxaErro: 0.5,
             minCooldown: app_config.min_cooldown,
             pesoRevisao: 0.3,
-            nome: nome ?? deckId, //TODO adaptar para filtros de fauna e local
+            nome: nome ?? deckId,
             descricao: "",
             id: deckId,
             source: "inat",
@@ -90,9 +100,20 @@ export const useDecksStore = defineStore("decks", {
 
       // Carrega estado salvo do DB
       if (this.dbConnection) {
-        const saved = await this.dbConnection.get(STORE_NAME, deckId);
-        if (saved) {
-          Object.assign(this.decks[deckId], saved);
+        try {
+          const saved = await this.dbConnection.get(STORE_NAME, deckId);
+          if (saved) {
+            // Converte datas de string para Date se necessário
+            if (
+              saved.config?.data_criacao &&
+              typeof saved.config.data_criacao === "string"
+            ) {
+              saved.config.data_criacao = new Date(saved.config.data_criacao);
+            }
+            Object.assign(this.decks[deckId], saved);
+          }
+        } catch (error) {
+          console.error(`Erro ao carregar deck ${deckId}:`, error);
         }
       }
 
@@ -105,34 +126,36 @@ export const useDecksStore = defineStore("decks", {
       return this.decks[this.activeDeckId] || null;
     },
 
-    // A função debounce agora chama o utilitário 'saveDeck' com a conexão e o deck.
-    saveDeckDebounced: debounce(function (this: any, deck: DeckState) {
+    // Função debounce atualizada para ser async
+    saveDeckDebounced: debounce(async function (this: any, deck: DeckState) {
       if (this.dbConnection) {
-        saveDeck(deck, this.dbConnection);
+        await saveDeck(deck, this.dbConnection);
       }
     }, 500),
 
     // Adiciona cards à fila de níveis
-    addCards(cards: Card[] | Card) {
+    async addCards(cards: Card[] | Card) {
       const deck = this.getActiveDeck();
       if (!deck) return;
       if (!Array.isArray(cards)) cards = [cards];
+
       cards.forEach((c) => {
         if (!deck.levelsQueue.some((card) => card.id === c.id)) {
           deck.levelsQueue.push(c);
         }
       });
-      this.saveDeckDebounced(deck);
+
+      await this.saveDeckDebounced(deck);
     },
 
     // Incrementa o contador global do deck
-    incrementGlobalCounter() {
+    async incrementGlobalCounter() {
       const deck = this.getActiveDeck();
       if (!deck) return;
-      deck.globalCounter++;
 
+      deck.globalCounter++;
       this.refreshReviewQueue();
-      this.saveDeckDebounced(deck);
+      await this.saveDeckDebounced(deck);
     },
 
     // Sorteia o próximo card SEM remover das filas
@@ -161,21 +184,21 @@ export const useDecksStore = defineStore("decks", {
     },
 
     // Processa resposta e move card entre filas
-    answerCard(card: Card, acertou: boolean) {
+    async answerCard(card: Card, acertou: boolean) {
       const deck = this.getActiveDeck();
       if (!deck) return;
 
       // Incrementa contador global
-      this.incrementGlobalCounter();
+      await this.incrementGlobalCounter();
 
       // Atualiza cooldown e move para fila de cooldown
-      this.updateCooldown(card, acertou);
+      await this.updateCooldown(card, acertou);
 
-      this.saveDeckDebounced(deck);
+      await this.saveDeckDebounced(deck);
     },
 
     // Atualiza cooldown e move card para fila de cooldown
-    updateCooldown(card: Card, acertou: boolean) {
+    async updateCooldown(card: Card, acertou: boolean) {
       const deck = this.getActiveDeck();
       if (!deck) return;
 
@@ -209,7 +232,7 @@ export const useDecksStore = defineStore("decks", {
     },
 
     // função para atualizar a fila de revisão
-    refreshReviewQueue() {
+    async refreshReviewQueue() {
       const deck = this.getActiveDeck();
       if (!deck) return;
 
@@ -219,7 +242,7 @@ export const useDecksStore = defineStore("decks", {
       ready.sort((a, b) => a.lastSeenAt - b.lastSeenAt);
       deck.reviewQueue.push(...ready);
       deck.cooldownQueue = deck.cooldownQueue.filter((c) => !ready.includes(c));
-      this.saveDeckDebounced(deck);
+      await this.saveDeckDebounced(deck);
     },
 
     // verificar se pode subir de nível
@@ -234,14 +257,15 @@ export const useDecksStore = defineStore("decks", {
       );
     },
 
-    advanceLevel(): boolean {
+    async advanceLevel(): Promise<boolean> {
       const deck = this.getActiveDeck();
       if (!deck || !this.canAdvanceLevel()) return false;
+
       const idx = ORDEM_NIVEIS.indexOf(deck.currentLevel);
       const next = ORDEM_NIVEIS[idx + 1];
       if (next) {
         deck.currentLevel = next;
-        this.saveDeckDebounced(deck);
+        await this.saveDeckDebounced(deck);
         return true;
       }
       return false;
@@ -252,8 +276,23 @@ export const useDecksStore = defineStore("decks", {
       await this.initDB();
       if (!this.dbConnection) return [];
 
-      const allDecks = await this.dbConnection.getAll(STORE_NAME);
-      return allDecks;
+      try {
+        const allDecks = await this.dbConnection.getAll(STORE_NAME);
+
+        // Converte datas de string para Date se necessário
+        return allDecks.map((deck) => {
+          if (
+            deck.config?.data_criacao &&
+            typeof deck.config.data_criacao === "string"
+          ) {
+            deck.config.data_criacao = new Date(deck.config.data_criacao);
+          }
+          return deck;
+        });
+      } catch (error) {
+        console.error("Erro ao listar decks:", error);
+        return [];
+      }
     },
 
     // Remove um deck permanentemente
@@ -263,7 +302,6 @@ export const useDecksStore = defineStore("decks", {
 
       if (this.dbConnection) {
         try {
-          // Usa o ID do deck como chave para apagar
           await this.dbConnection.delete(STORE_NAME, deckId);
         } catch (error) {
           console.error(`Erro ao apagar deck ${deckId} do IndexedDB:`, error);
