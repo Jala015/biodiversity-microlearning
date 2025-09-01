@@ -2,26 +2,12 @@
 import type { DeckConfig } from "~/stores/decks";
 import { PhBoxArrowDown, PhMapPinSimpleArea } from "@phosphor-icons/vue";
 
-const decks = ref<
-    Omit<
-        DeckConfig,
-        "taxaAcerto" | "taxaErro" | "pesoRevisao" | "minCooldown"
-    >[]
->([
-    {
-        id: "1",
-        nome: "Deck 1",
-        descricao: "Description for Deck 1",
-        source: "generated",
-    },
-    {
-        id: "2",
-        nome: "Deck 2",
-        descricao: "Description for Deck 2",
-        source: "curated",
-        favorite: true,
-    },
-]);
+const decks = ref<DeckConfig[]>([]);
+const decksStore = useDecksStore();
+
+onMounted(async () => {
+    decks.value = await decksStore.listDecksFromDB();
+});
 </script>
 
 <template>

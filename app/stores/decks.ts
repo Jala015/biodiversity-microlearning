@@ -135,10 +135,50 @@ export const useDecksStore = defineStore("decks", {
       this.saveDeckDebounced(deck);
     },
 
-    // atualiza o cooldown do card atual
+    // Sorteia o próximo card SEM remover das filas
+    getNextCard(): Card | null {
+      const deck = this.getActiveDeck();
+      if (!deck) return null;
+
+      const cardsNovos = deck.levelsQueue.filter(
+        (c) => c.nivel === deck.currentLevel,
+      );
+      const cardsRevisao = deck.reviewQueue;
+
+      if (!cardsNovos.length && !cardsRevisao.length) return null;
+      if (!cardsNovos.length) return cardsRevisao[0] || null;
+      if (!cardsRevisao.length) return cardsNovos[0] || null;
+
+      const pesoNovos = cardsNovos.length;
+      const pesoRevisao = cardsRevisao.length * deck.config.pesoRevisao;
+      const sorteio = Math.random() * (pesoNovos + pesoRevisao);
+
+      if (sorteio < pesoRevisao) {
+        return cardsRevisao[0] || null;
+      } else {
+        return cardsNovos[0] || null;
+      }
+    },
+
+    // Processa resposta e move card entre filas
+    answerCard(card: Card, acertou: boolean) {
+      const deck = this.getActiveDeck();
+      if (!deck) return;
+
+      // Incrementa contador global
+      this.incrementGlobalCounter();
+
+      // Atualiza cooldown e move para fila de cooldown
+      this.updateCooldown(card, acertou);
+
+      this.saveDeckDebounced(deck);
+    },
+
+    // Atualiza cooldown e move card para fila de cooldown
     updateCooldown(card: Card, acertou: boolean) {
       const deck = this.getActiveDeck();
       if (!deck) return;
+
       const aleatorio = Math.round(Math.random() * 10) - 5;
       if (acertou) {
         card.cooldown = card.cooldown * deck.config.taxaAcerto + aleatorio;
@@ -151,10 +191,21 @@ export const useDecksStore = defineStore("decks", {
       }
       card.lastSeenAt = deck.globalCounter;
 
+      // Remove das filas originais
+      const reviewIndex = deck.reviewQueue.findIndex((c) => c.id === card.id);
+      if (reviewIndex !== -1) {
+        deck.reviewQueue.splice(reviewIndex, 1);
+      }
+
+      const levelIndex = deck.levelsQueue.findIndex((c) => c.id === card.id);
+      if (levelIndex !== -1) {
+        deck.levelsQueue.splice(levelIndex, 1);
+      }
+
+      // Adiciona à cooldownQueue se não estiver lá
       if (!deck.cooldownQueue.some((c) => c.id === card.id)) {
         deck.cooldownQueue.push(card);
       }
-      this.saveDeckDebounced(deck);
     },
 
     // função para atualizar a fila de revisão
@@ -169,38 +220,6 @@ export const useDecksStore = defineStore("decks", {
       deck.reviewQueue.push(...ready);
       deck.cooldownQueue = deck.cooldownQueue.filter((c) => !ready.includes(c));
       this.saveDeckDebounced(deck);
-    },
-
-    // função para obter a próxima carta
-    getNextCard(): Card | null {
-      const deck = this.getActiveDeck();
-      if (!deck) return null;
-
-      const cardsNovos = deck.levelsQueue.filter(
-        (c) => c.nivel === deck.currentLevel,
-      );
-      const cardsRevisao = deck.reviewQueue;
-
-      if (!cardsNovos.length && !cardsRevisao.length) return null;
-      if (!cardsNovos.length) return deck.reviewQueue.shift() || null;
-      if (!cardsRevisao.length) {
-        const idx = deck.levelsQueue.findIndex(
-          (c) => c.nivel === deck.currentLevel,
-        );
-        return deck.levelsQueue.splice(idx, 1)[0] || null;
-      }
-
-      const pesoNovos = cardsNovos.length;
-      const pesoRevisao = cardsRevisao.length * deck.config.pesoRevisao;
-      const sorteio = Math.random() * (pesoNovos + pesoRevisao);
-
-      if (sorteio < pesoRevisao) return deck.reviewQueue.shift() || null;
-      else {
-        const idx = deck.levelsQueue.findIndex(
-          (c) => c.nivel === deck.currentLevel,
-        );
-        return deck.levelsQueue.splice(idx, 1)[0] || null;
-      }
     },
 
     // verificar se pode subir de nível
@@ -228,9 +247,13 @@ export const useDecksStore = defineStore("decks", {
       return false;
     },
 
-    // Lista de decks em memória
-    listDecks(): DeckState[] {
-      return Object.values(this.decks);
+    //lista decks do idb
+    async listDecksFromDB(): Promise<DeckState[]> {
+      await this.initDB();
+      if (!this.dbConnection) return [];
+
+      const allDecks = await this.dbConnection.getAll(STORE_NAME);
+      return allDecks;
     },
 
     // Remove um deck permanentemente
@@ -254,6 +277,44 @@ export const useDecksStore = defineStore("decks", {
       if (this.activeDeckId === deckId) {
         this.activeDeckId = null;
       }
+    },
+
+    // Verifica se há cards disponíveis para estudo
+    hasAvailableCards(): boolean {
+      const deck = this.getActiveDeck();
+      if (!deck) return false;
+
+      const hasNewCards = deck.levelsQueue.some(
+        (c) => c.nivel === deck.currentLevel,
+      );
+      const hasReviewCards = deck.reviewQueue.length > 0;
+
+      return hasNewCards || hasReviewCards;
+    },
+
+    // Estatísticas do deck atual
+    getDeckStats() {
+      const deck = this.getActiveDeck();
+      if (!deck) return null;
+
+      const totalCards =
+        deck.levelsQueue.length +
+        deck.cooldownQueue.length +
+        deck.reviewQueue.length;
+      const studiedCards = deck.cooldownQueue.length;
+      const reviewCards = deck.reviewQueue.length;
+      const newCards = deck.levelsQueue.filter(
+        (c) => c.nivel === deck.currentLevel,
+      ).length;
+
+      return {
+        total: totalCards,
+        studied: studiedCards,
+        review: reviewCards,
+        new: newCards,
+        currentLevel: deck.currentLevel,
+        globalCounter: deck.globalCounter,
+      };
     },
   },
 });
