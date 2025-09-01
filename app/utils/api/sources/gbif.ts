@@ -55,6 +55,7 @@ export async function obterEspeciesMaisComuns(opcoes: SearchOptions): Promise<{
     );
 
     if (error.value) {
+      console.error("Erro na requisição GBIF via Deno:", error.value);
       const { data: response2, error: error2 } =
         await useFetch<GbifOccResponse>(decodeURIComponent(fallbackUrl), {
           key: `gbif-${btoa(url).slice(0, 10)}`, // Cache key único baseado na URL
@@ -66,13 +67,15 @@ export async function obterEspeciesMaisComuns(opcoes: SearchOptions): Promise<{
           },
         });
       if (error2.value) {
-        console.error("❌ Erro na requisição GBIF:", error2.value);
+        console.error("Erro na requisição direta GBIF:", error2.value);
         throw new Error(
           `Erro ao buscar dados do GBIF: ${error2.value.message}`,
         );
       }
       response.value = response2.value;
     }
+
+    console.log("Dados do GBIF carregados", response.value);
 
     if (!response.value) {
       throw new Error("Resposta inválida do GBIF");
