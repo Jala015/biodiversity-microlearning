@@ -72,7 +72,7 @@ async function coletarDados(
       taxonKeys,
     });
 
-    if (!dadosGBIF || dadosGBIF) {
+    if (!dadosGBIF || !dadosGBIF.nomes_cientificos) {
       console.warn(
         `⚠️ Nenhuma espécie encontrada após ${tentativas} tentativas`,
       );
