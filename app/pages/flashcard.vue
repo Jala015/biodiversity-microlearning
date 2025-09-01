@@ -1,38 +1,44 @@
-<!--
-Página para lidar com os cards exibidos, animações de acertos e erros e feedback ao usuário.
--->
+<!-- pages/estudo.vue -->
 <script setup>
-import { computed, provide } from "vue";
+import { computed, ref, onMounted } from "vue";
 import { useDecksStore } from "~/stores/decks";
 
 const store = useDecksStore();
+const currentCard = ref();
 
-// Card atual do deck ativo
-const currentCard = store.getNextCard();
+onMounted(() => {
+    currentCard.value = store.getNextCard();
+});
 
 // Status atual baseado na origem do card
 const status_atual = computed(() => {
     const deck = store.getActiveDeck();
     if (!deck || !currentCard.value) return "carregando";
 
-    // Verifica se o card está na fila de revisão
     const isReview = deck.reviewQueue.some(
         (c) => c.id === currentCard.value.id,
     );
     return isReview ? "revisao" : "nova";
 });
 
-// Função para processar resposta do usuário
+// Processar resposta
 function handleAnswer(acertou) {
+    console.debug("resposta do usuário:", acertou);
     const card = currentCard.value;
     if (card) {
         store.answerCard(card, acertou);
-        currentCard = store.getNextCard();
+        currentCard.value = store.getNextCard();
     }
 }
 
-// Estatísticas do deck
+// Estatísticas
 const deckStats = computed(() => store.getDeckStats());
+
+// NOVO: verificar se ainda existem cards
+const hasAnyCards = computed(() => {
+    const stats = deckStats.value;
+    return stats && (stats.new > 0 || stats.review > 0 || canAdvance.value);
+});
 
 function traduzirTaxonLevel(level) {
     if (!level) return "";
@@ -56,53 +62,83 @@ function traduzirTaxonLevel(level) {
     }
 }
 
-// Verificar se pode avançar de nível (para componente de aviso)
 const canAdvance = computed(() => store.canAdvanceLevel());
+
+function advanceLevel() {
+    store.advanceLevel();
+    store.getNextCard();
+}
 </script>
 
 <template>
     <div>
-        <!-- Loading state -->
+        <!-- Loading/End state -->
         <div
             v-if="!currentCard"
             class="flex items-center justify-center min-h-screen"
         >
             <div class="text-center">
+                <!-- Loading -->
                 <div
                     class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"
+                    v-if="!deckStats"
                 ></div>
-                <p class="text-gray-600">
-                    {{
-                        deckStats?.total
-                            ? "Parabéns! Você estudou todos os cards disponíveis."
-                            : "Carregando deck..."
-                    }}
-                </p>
+
+                <!-- Nível concluído -->
+                <div v-if="deckStats && canAdvance" class="text-gray-600">
+                    🎉 Você concluiu o nível {{ deckStats.currentLevel }}!
+                    <button @click="advanceLevel" class="btn block my-4">
+                        Avançar para o próximo nível
+                    </button>
+                </div>
+
+                <!-- Deck concluído -->
+                <div
+                    v-else-if="deckStats && !hasAnyCards"
+                    class="text-gray-600"
+                >
+                    🏆 Parabéns! Você concluiu todo o deck!
+                </div>
+
+                <!-- Carregando próximo -->
+                <p v-else>Carregando próximo card...</p>
+
+                <!-- Estatísticas -->
                 <div v-if="deckStats" class="mt-4 text-sm text-gray-500">
                     <p>📊 Estatísticas:</p>
                     <p>
-                        Cards estudados: {{ deckStats.studied }}/{{
+                        Nível {{ deckStats.currentLevel }}:
+                        {{ deckStats.currentLevelSeen }}/{{
+                            deckStats.currentLevelTotal
+                        }}
+                        cards vistos
+                    </p>
+                    <p>
+                        Total do deck: {{ deckStats.totalSeen }}/{{
                             deckStats.total
                         }}
+                        cards
                     </p>
-                    <p>Nível atual: {{ deckStats.currentLevel }}</p>
-                    <p>Para revisão: {{ deckStats.review }}</p>
+                    <p>Aguardando revisão: {{ deckStats.review }}</p>
+                    <p>Contador global: {{ deckStats.globalCounter }}</p>
                 </div>
             </div>
         </div>
 
         <!-- Card de estudo -->
         <div v-else>
-            <!-- Banner -->
             <DeckBanner
                 :status_atual="status_atual"
                 :taxon_level="traduzirTaxonLevel(currentCard.nivel_taxonomico)"
             />
 
-            <!-- Cartão com foto e perguntas -->
-            <DeckQuestion :card="currentCard" @resposta="handleAnswer" />
+            <DeckQuestion
+                :card="currentCard"
+                @resposta="handleAnswer"
+                :key="currentCard.id"
+            />
 
-            <!-- Debug info (remover em produção) -->
+            <!-- Debug -->
             <div
                 v-if="deckStats"
                 class="fixed bottom-4 right-4 bg-black bg-opacity-50 text-white p-2 rounded text-xs"
@@ -114,6 +150,11 @@ const canAdvance = computed(() => store.canAdvanceLevel());
                 <p>
                     📚 Novos: {{ deckStats.new }} | 🔄 Revisão:
                     {{ deckStats.review }}
+                </p>
+                <p>
+                    👁️ Nível: {{ deckStats.currentLevelSeen }}/{{
+                        deckStats.currentLevelTotal
+                    }}
                 </p>
             </div>
         </div>

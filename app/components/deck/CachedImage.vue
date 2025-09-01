@@ -1,6 +1,3 @@
-<!--
-    Componente Vue para exibir uma imagem que é salva comprimida em cache local (indexedDB via idb)
--->
 <template>
     <img
         class="w-full object-center h-full max-h-[50vh] object-cover"
@@ -8,11 +5,11 @@
         :src="imageUrl"
         :alt="alt"
     />
-    <div v-else>Carregando...</div>
+    <div v-else class="h-full w-full">Carregando...</div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted } from "vue";
+import { onMounted, onUnmounted, ref } from "vue";
 import { openDB } from "idb";
 import imageCompression from "browser-image-compression";
 
@@ -20,9 +17,20 @@ const props = defineProps<{ url: string; alt?: string }>();
 const imageUrl = ref<string | null>(null);
 let objectUrl: string | null = null;
 
+function normalizeUrl(url: string) {
+    try {
+        const u = new URL(url);
+        return u.origin + u.pathname;
+    } catch {
+        return url;
+    }
+}
+
 const dbPromise = openDB("image-cache", 1, {
     upgrade(db) {
-        db.createObjectStore("images");
+        if (!db.objectStoreNames.contains("images")) {
+            db.createObjectStore("images");
+        }
     },
 });
 
@@ -30,38 +38,47 @@ onMounted(async () => {
     const timeoutId = setTimeout(() => {
         console.log("Timeout atingido, carregando imagem diretamente da URL.");
         imageUrl.value = props.url;
-    }, 5000); // 5 segundos de timeout
+    }, 5000);
 
     try {
         const db = await dbPromise;
-        let blob = await db.get("images", props.url);
+        const key = normalizeUrl(props.url);
+        let blob = await db.get("images", key);
 
         if (!blob) {
+            console.debug("Fetching image from URL");
             const response = await fetch(props.url);
             const fetchedBlob = await response.blob();
 
-            // Convert Blob to File with a name derived from the URL
             const filename = props.url.split("/").pop() || "image.jpg";
             const fileFromBlob = new File([fetchedBlob], filename, {
                 type: fetchedBlob.type || "image/jpeg",
                 lastModified: new Date().getTime(),
             });
 
-            blob = await imageCompression(fileFromBlob, {
+            const compressedFile = await imageCompression(fileFromBlob, {
                 maxSizeMB: 1,
                 maxWidthOrHeight: 1024,
                 useWebWorker: true,
             });
 
-            await db.put("images", blob, props.url);
+            blob = compressedFile.slice(
+                0,
+                compressedFile.size,
+                compressedFile.type,
+            );
+            await db.put("images", blob, key);
+        } else {
+            console.debug("imagem já constava no cache");
         }
-        clearTimeout(timeoutId); // Limpa o timeout
+
+        clearTimeout(timeoutId);
         objectUrl = URL.createObjectURL(blob);
         imageUrl.value = objectUrl;
     } catch (err) {
         console.error("Erro ao carregar imagem:", err);
-        clearTimeout(timeoutId); // Limpa o timeout em caso de erro também
-        imageUrl.value = props.url; // Tenta carregar a imagem
+        clearTimeout(timeoutId);
+        imageUrl.value = props.url;
     }
 });
 

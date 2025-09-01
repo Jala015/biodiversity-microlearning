@@ -22,17 +22,14 @@ export interface DeckState {
   config: DeckConfig;
 }
 
-// Função para serializar deck de forma segura para IndexedDB
+// Serialização segura para IndexedDB
 function serializeDeck(deck: DeckState): DeckState {
-  // Usa JSON.parse(JSON.stringify()) para criar uma cópia profunda
-  // e remover qualquer propriedade não serializável
   return JSON.parse(JSON.stringify(toRaw(deck)));
 }
 
-// Função para salvar deck no IndexedDB
+// Salvar deck no IndexedDB
 async function saveDeck(deck: DeckState, db: IDBPDatabase) {
   if (!db) return;
-
   try {
     const serializedDeck = serializeDeck(deck);
     await db.put("state", serializedDeck, deck.id);
@@ -51,11 +48,13 @@ export const useDecksStore = defineStore("decks", {
     decks: {} as Record<string, DeckState>,
     dbConnection: null as IDBPDatabase | null,
   }),
-
+  persist: {
+    key: "decks",
+    storage: indexedDB,
+    paths: ["decks"],
+    pick: ["activeDeckId", "dbConnection"],
+  },
   actions: {
-    /**
-     * Inicializa a conexão com o banco de dados principal.
-     */
     async initDB() {
       if (!this.dbConnection) {
         this.dbConnection = await openDB(DB_NAME, 1, {
@@ -68,10 +67,6 @@ export const useDecksStore = defineStore("decks", {
       }
     },
 
-    /**
-     * Ativa um deck. Garante que o DB principal esteja conectado
-     * e carrega o estado do deck do IndexedDB se existir.
-     */
     async activateDeck(deckId: string, nome: string = "") {
       await this.initDB();
 
@@ -98,12 +93,10 @@ export const useDecksStore = defineStore("decks", {
         };
       }
 
-      // Carrega estado salvo do DB
       if (this.dbConnection) {
         try {
           const saved = await this.dbConnection.get(STORE_NAME, deckId);
           if (saved) {
-            // Converte datas de string para Date se necessário
             if (
               saved.config?.data_criacao &&
               typeof saved.config.data_criacao === "string"
@@ -116,24 +109,22 @@ export const useDecksStore = defineStore("decks", {
           console.error(`Erro ao carregar deck ${deckId}:`, error);
         }
       }
-
+      sessionStorage.setItem("ActiveDeckId", deckId);
       this.activeDeckId = deckId;
     },
 
-    // obtém o deck ativo
     getActiveDeck(): DeckState | null {
       if (!this.activeDeckId) return null;
       return this.decks[this.activeDeckId] || null;
     },
 
-    // Função debounce atualizada para ser async
     saveDeckDebounced: debounce(async function (this: any, deck: DeckState) {
       if (this.dbConnection) {
         await saveDeck(deck, this.dbConnection);
       }
     }, 500),
 
-    // Adiciona cards à fila de níveis
+    // CORREÇÃO 3: adicionar cards com cooldown inicial e lastSeenAt
     async addCards(cards: Card[] | Card) {
       const deck = this.getActiveDeck();
       if (!deck) return;
@@ -141,6 +132,17 @@ export const useDecksStore = defineStore("decks", {
 
       cards.forEach((c) => {
         if (!deck.levelsQueue.some((card) => card.id === c.id)) {
+          if (
+            c.cooldown === undefined ||
+            c.cooldown === null ||
+            c.cooldown === 0
+          ) {
+            const cooldownMap = { facil: 3, medio: 5, dificil: 8, desafio: 12 };
+            c.cooldown = cooldownMap[c.nivel] || 5;
+          }
+          if (!c.lastSeenAt) {
+            c.lastSeenAt = 0;
+          }
           deck.levelsQueue.push(c);
         }
       });
@@ -148,7 +150,6 @@ export const useDecksStore = defineStore("decks", {
       await this.saveDeckDebounced(deck);
     },
 
-    // Incrementa o contador global do deck
     async incrementGlobalCounter() {
       const deck = this.getActiveDeck();
       if (!deck) return;
@@ -158,16 +159,19 @@ export const useDecksStore = defineStore("decks", {
       await this.saveDeckDebounced(deck);
     },
 
-    // Sorteia o próximo card SEM remover das filas
-    getNextCard(): Card | null {
+    getNextCard():  {
+      console.debug("sorteando próximo card");
       const deck = this.getActiveDeck();
       if (!deck) return null;
-
+      console.debug("deck encontrado");
+      
+      let returnValue = null;
       const cardsNovos = deck.levelsQueue.filter(
         (c) => c.nivel === deck.currentLevel,
       );
       const cardsRevisao = deck.reviewQueue;
 
+      // se alguma das filas estiver vazia, retorna o primeiro card da outra fila
       if (!cardsNovos.length && !cardsRevisao.length) return null;
       if (!cardsNovos.length) return cardsRevisao[0] || null;
       if (!cardsRevisao.length) return cardsNovos[0] || null;
@@ -183,69 +187,83 @@ export const useDecksStore = defineStore("decks", {
       }
     },
 
-    // Processa resposta e move card entre filas
     async answerCard(card: Card, acertou: boolean) {
       const deck = this.getActiveDeck();
       if (!deck) return;
 
-      // Incrementa contador global
       await this.incrementGlobalCounter();
-
-      // Atualiza cooldown e move para fila de cooldown
       await this.updateCooldown(card, acertou);
-
       await this.saveDeckDebounced(deck);
     },
 
-    // Atualiza cooldown e move card para fila de cooldown
     async updateCooldown(card: Card, acertou: boolean) {
       const deck = this.getActiveDeck();
       if (!deck) return;
 
-      const aleatorio = Math.round(Math.random() * 10) - 5;
+      if (!card.cooldown || card.cooldown <= 0) {
+        const cooldownMap = { facil: 3, medio: 5, dificil: 8, desafio: 12 };
+        card.cooldown = cooldownMap[card.nivel] || 5;
+      }
+
+      const aleatorio = Math.round(Math.random() * 2) - 1;
       if (acertou) {
-        card.cooldown = card.cooldown * deck.config.taxaAcerto + aleatorio;
+        card.cooldown =
+          Math.round(card.cooldown * deck.config.taxaAcerto) + aleatorio;
       } else {
         card.cooldown =
           Math.max(
             deck.config.minCooldown,
-            card.cooldown / deck.config.taxaErro,
+            Math.round(card.cooldown * deck.config.taxaErro),
           ) + aleatorio;
       }
       card.lastSeenAt = deck.globalCounter;
 
-      // Remove das filas originais
-      const reviewIndex = deck.reviewQueue.findIndex((c) => c.id === card.id);
-      if (reviewIndex !== -1) {
-        deck.reviewQueue.splice(reviewIndex, 1);
-      }
+      deck.reviewQueue = deck.reviewQueue.filter((c) => c.id !== card.id);
+      deck.levelsQueue = deck.levelsQueue.filter((c) => c.id !== card.id);
 
-      const levelIndex = deck.levelsQueue.findIndex((c) => c.id === card.id);
-      if (levelIndex !== -1) {
-        deck.levelsQueue.splice(levelIndex, 1);
-      }
+      // verifica se o cooldownQueue já contém o card
+      const idx = deck.cooldownQueue.findIndex((c) => c.id === card.id);
+      if (idx === -1) deck.cooldownQueue.push(card);
+      else deck.cooldownQueue[idx] = card;
 
-      // Adiciona à cooldownQueue se não estiver lá
-      if (!deck.cooldownQueue.some((c) => c.id === card.id)) {
-        deck.cooldownQueue.push(card);
-      }
+      console.debug(
+        `Card ${card.id} com cooldown ${card.cooldown}, será revisado após ${card.cooldown} jogadas`,
+      );
     },
 
-    // função para atualizar a fila de revisão
+    // CORREÇÃO 6: refreshReviewQueue com debug e deduplicação
     async refreshReviewQueue() {
       const deck = this.getActiveDeck();
       if (!deck) return;
 
-      const ready = deck.cooldownQueue.filter(
-        (c) => deck.globalCounter - c.lastSeenAt >= c.cooldown,
-      );
-      ready.sort((a, b) => a.lastSeenAt - b.lastSeenAt);
-      deck.reviewQueue.push(...ready);
-      deck.cooldownQueue = deck.cooldownQueue.filter((c) => !ready.includes(c));
+      const ready = deck.cooldownQueue.filter((c) => {
+        const cooldownPassed = deck.globalCounter - c.lastSeenAt >= c.cooldown;
+        if (cooldownPassed) {
+          console.debug(
+            `Card ${c.id} pronto para revisão: ${deck.globalCounter} - ${c.lastSeenAt} >= ${c.cooldown}`,
+          );
+        }
+        return cooldownPassed;
+      });
+
+      if (ready.length > 0) {
+        console.debug(`Movendo ${ready.length} cards para revisão`);
+        ready.sort((a, b) => a.lastSeenAt - b.lastSeenAt);
+
+        const readyIds = ready.map((c) => c.id);
+        deck.reviewQueue = deck.reviewQueue.filter(
+          (c) => !readyIds.includes(c.id),
+        );
+        deck.reviewQueue.push(...ready);
+
+        deck.cooldownQueue = deck.cooldownQueue.filter(
+          (c) => !ready.includes(c),
+        );
+      }
+
       await this.saveDeckDebounced(deck);
     },
 
-    // verificar se pode subir de nível
     canAdvanceLevel(): boolean {
       const deck = this.getActiveDeck();
       if (!deck) return false;
@@ -271,7 +289,6 @@ export const useDecksStore = defineStore("decks", {
       return false;
     },
 
-    //lista decks do idb
     async listDecksFromDB(): Promise<DeckState[]> {
       await this.initDB();
       if (!this.dbConnection) return [];
@@ -279,7 +296,6 @@ export const useDecksStore = defineStore("decks", {
       try {
         const allDecks = await this.dbConnection.getAll(STORE_NAME);
 
-        // Converte datas de string para Date se necessário
         return allDecks.map((deck) => {
           if (
             deck.config?.data_criacao &&
@@ -287,6 +303,9 @@ export const useDecksStore = defineStore("decks", {
           ) {
             deck.config.data_criacao = new Date(deck.config.data_criacao);
           }
+          delete deck.config.fila_cooldown;
+          deck.levelsQueue = [deck.levelsQueue[0]];
+          deck.reviewQueue = [deck.reviewQueue[0]];
           return deck;
         });
       } catch (error) {
@@ -295,7 +314,6 @@ export const useDecksStore = defineStore("decks", {
       }
     },
 
-    // Remove um deck permanentemente
     async removeDeck(deckId: string) {
       const deck = this.decks[deckId];
       if (!deck) return;
@@ -308,16 +326,12 @@ export const useDecksStore = defineStore("decks", {
         }
       }
 
-      // Remove da memória
       delete this.decks[deckId];
-
-      // Se era o deck ativo, desativa
       if (this.activeDeckId === deckId) {
         this.activeDeckId = null;
       }
     },
 
-    // Verifica se há cards disponíveis para estudo
     hasAvailableCards(): boolean {
       const deck = this.getActiveDeck();
       if (!deck) return false;
@@ -330,7 +344,7 @@ export const useDecksStore = defineStore("decks", {
       return hasNewCards || hasReviewCards;
     },
 
-    // Estatísticas do deck atual
+    // CORREÇÃO 4: getDeckStats com estatísticas mais precisas
     getDeckStats() {
       const deck = this.getActiveDeck();
       if (!deck) return null;
@@ -339,17 +353,23 @@ export const useDecksStore = defineStore("decks", {
         deck.levelsQueue.length +
         deck.cooldownQueue.length +
         deck.reviewQueue.length;
-      const studiedCards = deck.cooldownQueue.length;
-      const reviewCards = deck.reviewQueue.length;
-      const newCards = deck.levelsQueue.filter(
+
+      const totalSeen = deck.cooldownQueue.length + deck.reviewQueue.length;
+
+      const currentLevelCards = deck.levelsQueue.filter(
         (c) => c.nivel === deck.currentLevel,
-      ).length;
+      );
+      const currentLevelSeen =
+        deck.cooldownQueue.filter((c) => c.nivel === deck.currentLevel).length +
+        deck.reviewQueue.filter((c) => c.nivel === deck.currentLevel).length;
 
       return {
         total: totalCards,
-        studied: studiedCards,
-        review: reviewCards,
-        new: newCards,
+        totalSeen,
+        currentLevelTotal: currentLevelCards.length + currentLevelSeen,
+        currentLevelSeen,
+        review: deck.reviewQueue.length,
+        new: currentLevelCards.length,
         currentLevel: deck.currentLevel,
         globalCounter: deck.globalCounter,
       };

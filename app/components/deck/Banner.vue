@@ -3,7 +3,6 @@ defineProps({
     status_atual: {
         type: String,
         default: "nova",
-        validator: (value) => ["nova", "revisao"].includes(value),
     },
     taxon_level: {
         type: String,

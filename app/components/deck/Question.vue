@@ -36,10 +36,13 @@ const emit = defineEmits(["resposta"]);
 const bloquear = ref(false);
 
 const handleChute = (correta: boolean) => {
-    bloquear.value = true;
+    // bloquear.value = true;
     if (correta) {
+        console.debug("clique usuario:", correta);
         emit("resposta", true);
     } else {
+        console.debug("clique usuario:", correta);
+
         emit("resposta", false);
     }
 };
@@ -51,7 +54,10 @@ const handleChute = (correta: boolean) => {
             id="img-container"
             class="rounded-lg relative max-h-[50vh] overflow-clip outline outline-base-content/50"
         >
-            <DeckCachedImage :url="props.card.imagem.identifier" />
+            <DeckCachedImage
+                v-if="props.card.imagem.identifier"
+                :url="props.card.imagem.identifier"
+            />
             <div
                 class="bg-gradient-to-t text-nowrap text-white/70 from-black/50 to-black/5 absolute bottom-0 w-full text-center text-xs p-0"
             >
