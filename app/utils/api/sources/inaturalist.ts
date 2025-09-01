@@ -58,9 +58,8 @@ export async function consultarApiINat(
     );
 
     if (error.value) {
-      const { data: inatResp2, error: error2 } = await useFetch<INatTaxaResponse>(
-        decodeURIComponent(fallbackUrl),
-        {
+      const { data: inatResp2, error: error2 } =
+        await useFetch<INatTaxaResponse>(decodeURIComponent(fallbackUrl), {
           key: `inat-taxa-${btoa(scientificName).slice(0, 10)}`,
           server: false,
           default: () => ({
@@ -69,10 +68,9 @@ export async function consultarApiINat(
             page: 1,
             per_page: 0,
           }),
-        },
-      );
+        });
 
-      if error2.value) {
+      if (error2.value) {
         console.error(`Erro ao consultar iNaturalist: ${error2.value.message}`);
         return null;
       }
@@ -167,27 +165,23 @@ export async function obterTaxonsIrmaos(
 
     await new Promise((resolve) => setTimeout(resolve, 1001)); // Adiciona um delay de 1001ms
 
-    let { data: inatResp, error } = await useFetch<INatTaxaResponse>(
-      inatUrl,
-      {
-        key: `inat-taxa-${last_ancestor_id}`,
-        server: false,
-        headers: {
-          "X-API-Key": import.meta.env.VITE_HONO_API_KEY,
-        },
-        default: () => ({
-          results: [],
-          total_results: 0,
-          page: 1,
-          per_page: 0,
-        }),
+    let { data: inatResp, error } = await useFetch<INatTaxaResponse>(inatUrl, {
+      key: `inat-taxa-${last_ancestor_id}`,
+      server: false,
+      headers: {
+        "X-API-Key": import.meta.env.VITE_HONO_API_KEY,
       },
-    );
+      default: () => ({
+        results: [],
+        total_results: 0,
+        page: 1,
+        per_page: 0,
+      }),
+    });
 
     if (error.value) {
-      const { data: inatResp2, error: error2 } = await useFetch<INatTaxaResponse>(
-        fallbackUrl,
-        {
+      const { data: inatResp2, error: error2 } =
+        await useFetch<INatTaxaResponse>(fallbackUrl, {
           key: `inat-taxa-${last_ancestor_id}`,
           server: false,
           default: () => ({
@@ -196,8 +190,7 @@ export async function obterTaxonsIrmaos(
             page: 1,
             per_page: 0,
           }),
-        },
-      );
+        });
       if (error2.value) {
         console.error(
           `❌ Erro ao buscar táxons irmãos para ${correctTaxon.name} na URL ${inatUrl}:`,
@@ -206,7 +199,6 @@ export async function obterTaxonsIrmaos(
         return [];
       }
       inatResp.value = inatResp2.value;
-
     }
 
     // caso não tenha resultados
@@ -281,27 +273,23 @@ export async function obterTaxonsPrimos(
 
     await new Promise((resolve) => setTimeout(resolve, 1001)); // Adiciona um delay de 1001ms
 
-    let { data: inatResp, error } = await useFetch<INatTaxaResponse>(
-      inatUrl,
-      {
-        key: `inat-taxa-grandparent-${granparent_id}`,
-        server: false,
-        headers: {
-          "X-API-Key": import.meta.env.VITE_HONO_API_KEY,
-        },
-        default: () => ({
-          results: [],
-          total_results: 0,
-          page: 1,
-          per_page: 0,
-        }),
+    let { data: inatResp, error } = await useFetch<INatTaxaResponse>(inatUrl, {
+      key: `inat-taxa-grandparent-${granparent_id}`,
+      server: false,
+      headers: {
+        "X-API-Key": import.meta.env.VITE_HONO_API_KEY,
       },
-    );
+      default: () => ({
+        results: [],
+        total_results: 0,
+        page: 1,
+        per_page: 0,
+      }),
+    });
 
     if (error.value) {
-      const { data: inatResp2, error: error2 } = await useFetch<INatTaxaResponse>(
-        fallbackUrl,
-        {
+      const { data: inatResp2, error: error2 } =
+        await useFetch<INatTaxaResponse>(fallbackUrl, {
           key: `inat-taxa-grandparent-${granparent_id}`,
           server: false,
           default: () => ({
@@ -310,8 +298,7 @@ export async function obterTaxonsPrimos(
             page: 1,
             per_page: 0,
           }),
-        },
-      );
+        });
       if (error2.value) {
         console.error(
           `❌ Erro ao buscar táxons primos para ${correctTaxon.name} na URL ${fallbackUrl}:`,
@@ -366,8 +353,9 @@ export async function obterTaxonsPrimos(
 
       await new Promise((resolve) => setTimeout(resolve, 1001)); // Delay entre requisições
 
-      let { data: tioResp, error: tioError } =
-        await useFetch<INatTaxaResponse>(tioUrl, {
+      let { data: tioResp, error: tioError } = await useFetch<INatTaxaResponse>(
+        tioUrl,
+        {
           key: `inat-taxa-uncle-${tio.id}`,
           server: false,
           headers: {
@@ -379,7 +367,8 @@ export async function obterTaxonsPrimos(
             page: 1,
             per_page: 0,
           }),
-        });
+        },
+      );
 
       if (tioError.value) {
         let { data: tioResp2, error: tioError2 } =
@@ -460,27 +449,23 @@ export async function obterEspeciesAleatorias(
     const fallbackUrl = `https://api.inaturalist.org/v1/taxa?rank=${rank}&is_active=true&per_page=${count * 2}&page=${randomPage}&locale=pt-BR`;
 
     await new Promise((resolve) => setTimeout(resolve, 1001)); // Adiciona um delay de 1001ms
-    let { data: inatResp, error } = await useFetch<INatTaxaResponse>(
-      inatUrl,
-      {
-        key: `inat-random-${randomPage}-${count}`,
-        server: false,
-        headers: {
-          "X-API-Key": import.meta.env.VITE_HONO_API_KEY,
-        },
-        default: () => ({
-          results: [],
-          total_results: 0,
-          page: 1,
-          per_page: 0,
-        }),
+    let { data: inatResp, error } = await useFetch<INatTaxaResponse>(inatUrl, {
+      key: `inat-random-${randomPage}-${count}`,
+      server: false,
+      headers: {
+        "X-API-Key": import.meta.env.VITE_HONO_API_KEY,
       },
-    );
+      default: () => ({
+        results: [],
+        total_results: 0,
+        page: 1,
+        per_page: 0,
+      }),
+    });
 
     if (error.value) {
-      const { data: inatResp2, error: error2 } = await useFetch<INatTaxaResponse>(
-        fallbackUrl,
-        {
+      const { data: inatResp2, error: error2 } =
+        await useFetch<INatTaxaResponse>(fallbackUrl, {
           key: `inat-random-${randomPage}-${count}`,
           server: false,
           default: () => ({
@@ -489,14 +474,13 @@ export async function obterEspeciesAleatorias(
             page: 1,
             per_page: 0,
           }),
-        },
-      );
-      if(error2.value){
-      console.error(
-        `❌ Erro ao buscar espécies aleatórias na URL ${inatUrl}:`,
-        error.value,
-      );
-      return [];
+        });
+      if (error2.value) {
+        console.error(
+          `❌ Erro ao buscar espécies aleatórias na URL ${inatUrl}:`,
+          error.value,
+        );
+        return [];
       }
       inatResp.value = inatResp2.value;
     }
