@@ -166,3 +166,17 @@ export async function obterEspeciesMaisComuns(opcoes: SearchOptions): Promise<{
     throw error;
   }
 }
+
+//----------------------------//
+//                            //
+//     Funções auxiliares     //
+//                            //
+//----------------------------//
+
+export async function obterNomeCidade(lat: string, lon: string) {
+  const response = await fetch(
+    `${import.meta.env.VITE_HONO_URL}/cidade?lat=${lat}&lon=${lon}`,
+  );
+  const data = await response.json();
+  return data.cidade;
+}

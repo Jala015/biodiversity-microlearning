@@ -4,6 +4,7 @@ import { useDecksStore } from "~/stores/decks";
 import { criarDeckAutomatico } from "~/utils/api";
 import { customAlphabet } from "nanoid/non-secure";
 import { onMounted } from "vue";
+import { obterNomeCidade } from "~/utils/api/sources/gbif";
 
 const nanoid = customAlphabet("1234567890abcdef", 11);
 const decksStore = useDecksStore();
@@ -37,8 +38,20 @@ async function montarDeck(circulo) {
             filtro.value.taxonKeys,
         );
 
-        // Ativa ou cria o deck, inicializando o IndexedDB
-        await decksStore.activateDeck(deckstore_id.value);
+        const cidade = await obterNomeCidade(
+            circulo.coordinates[0],
+            circulo.coordinates[1],
+        );
+
+        //unir os nomes de filtros com vírgula e o último com 'e'
+        const filtros = filtro.value.filtros_str
+            .join(", ")
+            .replace(/,(?!.*,)/g, " e ");
+
+        const nome = `${cidade}: ${filtros}`;
+
+        // Cria o deck, inicializando o IndexedDB
+        await decksStore.activateDeck(deckstore_id.value, nome);
 
         // Adiciona os cards ao deck ativo
         decksStore.addCards(deck.cards);

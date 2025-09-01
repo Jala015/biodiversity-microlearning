@@ -64,9 +64,19 @@ const selectedIdsFiltrados = computed(() => {
     });
 });
 
+// gerar uma stringarray dos nomes dos grupos selecionados
+const filtrosStr = computed(() => {
+    return selectedIdsFiltrados.value.map((id) => {
+        const grupo = grupos.value.find((g) => g.gbifId === id);
+        return grupo?.nome;
+    });
+});
+
 // Expõe a lista de IDs filtrados para o componente pai
 defineExpose({
     taxonKeys: selectedIdsFiltrados,
+
+    filtros_str: filtrosStr,
 });
 </script>
 

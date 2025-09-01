@@ -62,7 +62,7 @@ export const useDecksStore = defineStore("decks", {
      * Ativa um deck. Garante que o DB principal esteja conectado
      * e carrega o estado do deck do IndexedDB se existir.
      */
-    async activateDeck(deckId: string) {
+    async activateDeck(deckId: string, nome: string = "") {
       await this.initDB();
 
       if (!this.decks[deckId]) {
@@ -78,7 +78,7 @@ export const useDecksStore = defineStore("decks", {
             taxaErro: 0.5,
             minCooldown: app_config.min_cooldown,
             pesoRevisao: 0.3,
-            nome: deckId, //TODO adaptar para filtros de fauna e local
+            nome: nome ?? deckId, //TODO adaptar para filtros de fauna e local
             descricao: "",
             id: deckId,
             source: "inat",
