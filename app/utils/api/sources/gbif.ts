@@ -38,9 +38,10 @@ export async function obterEspeciesMaisComuns(opcoes: SearchOptions): Promise<{
   }
 
   let url = `${import.meta.env.VITE_HONO_URL}/api/gbif/v1/occurrence/search?${params.toString()}`;
+  let fallbackUrl = `/api/gbif/occurrence/search?${params.toString()}`;
 
   try {
-    const { data: response, error } = await useFetch<GbifOccResponse>(
+    let { data: response, error } = await useFetch<GbifOccResponse>(
       decodeURIComponent(url),
       {
         key: `gbif-${btoa(url).slice(0, 10)}`, // Cache key único baseado na URL
@@ -54,8 +55,23 @@ export async function obterEspeciesMaisComuns(opcoes: SearchOptions): Promise<{
     );
 
     if (error.value) {
-      console.error("❌ Erro na requisição GBIF:", error.value);
-      throw new Error(`Erro ao buscar dados do GBIF: ${error.value.message}`);
+      const { data: response2, error: error2 } =
+        await useFetch<GbifOccResponse>(decodeURIComponent(fallbackUrl), {
+          key: `gbif-${btoa(url).slice(0, 10)}`, // Cache key único baseado na URL
+          server: import.meta.dev, // Force client-side apenas em produção
+          default: () => ({ facets: [] }),
+          headers: {
+            "Cache-Control": "max-age=3600",
+            "X-API-Key": import.meta.env.VITE_HONO_API_KEY,
+          },
+        });
+      if (error2.value) {
+        console.error("❌ Erro na requisição GBIF:", error2.value);
+        throw new Error(
+          `Erro ao buscar dados do GBIF: ${error2.value.message}`,
+        );
+      }
+      response.value = response2.value;
     }
 
     if (!response.value) {

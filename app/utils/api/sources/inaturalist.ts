@@ -33,10 +33,14 @@ export async function consultarApiINat(
     const inatUrl = `${import.meta.env.VITE_HONO_URL}/api/inat/v1/taxa?q=${encodeURIComponent(
       scientificName,
     )}&locale=pt-BR`;
+    const fallbackUrl = `https://api.inaturalist.org/v1/taxa?q=${encodeURIComponent(
+      scientificName,
+    )}&locale=pt-Br`;
+
     console.log(
       `ℹ️ Consultando iNaturalist para ${scientificName}. URL: ${inatUrl}`,
     );
-    const { data: inatResp, error } = await useFetch<INatTaxaResponse>(
+    let { data: inatResp, error } = await useFetch<INatTaxaResponse>(
       decodeURIComponent(inatUrl),
       {
         key: `inat-taxa-${btoa(scientificName).slice(0, 10)}`,
@@ -54,11 +58,26 @@ export async function consultarApiINat(
     );
 
     if (error.value) {
-      console.error(
-        `❌ Erro ao consultar iNaturalist para ${scientificName} na URL ${inatUrl}:`,
-        error,
+      const { data: inatResp2, error: error2 } = await useFetch<INatTaxaResponse>(
+        decodeURIComponent(fallbackUrl),
+        {
+          key: `inat-taxa-${btoa(scientificName).slice(0, 10)}`,
+          server: false,
+          default: () => ({
+            results: [],
+            total_results: 0,
+            page: 1,
+            per_page: 0,
+          }),
+        },
       );
-      return null;
+
+      if error2.value) {
+        console.error(`Erro ao consultar iNaturalist: ${error2.value.message}`);
+        return null;
+      }
+
+      inatResp.value = inatResp2.value;
     }
 
     if (
@@ -140,6 +159,7 @@ export async function obterTaxonsIrmaos(
     const last_ancestor_id =
       correctTaxon.ancestor_ids[correctTaxon.ancestor_ids.length - 2];
     const inatUrl = `${import.meta.env.VITE_HONO_URL}/api/inat/v1/taxa/${last_ancestor_id}?locale=pt-BR`;
+    const fallbackUrl = `https://api.inaturalist.org/v1/taxa/${last_ancestor_id}?locale=pt-BR`;
 
     console.log(
       `ℹ️ Buscando táxons irmãos para ${correctTaxon.name} usando ancestor_ids. URL: ${inatUrl}`,
@@ -147,7 +167,7 @@ export async function obterTaxonsIrmaos(
 
     await new Promise((resolve) => setTimeout(resolve, 1001)); // Adiciona um delay de 1001ms
 
-    const { data: inatResp, error } = await useFetch<INatTaxaResponse>(
+    let { data: inatResp, error } = await useFetch<INatTaxaResponse>(
       inatUrl,
       {
         key: `inat-taxa-${last_ancestor_id}`,
@@ -165,11 +185,28 @@ export async function obterTaxonsIrmaos(
     );
 
     if (error.value) {
-      console.error(
-        `❌ Erro ao buscar táxons irmãos para ${correctTaxon.name} na URL ${inatUrl}:`,
-        error,
+      const { data: inatResp2, error: error2 } = await useFetch<INatTaxaResponse>(
+        fallbackUrl,
+        {
+          key: `inat-taxa-${last_ancestor_id}`,
+          server: false,
+          default: () => ({
+            results: [],
+            total_results: 0,
+            page: 1,
+            per_page: 0,
+          }),
+        },
       );
-      return [];
+      if (error2.value) {
+        console.error(
+          `❌ Erro ao buscar táxons irmãos para ${correctTaxon.name} na URL ${inatUrl}:`,
+          error2,
+        );
+        return [];
+      }
+      inatResp.value = inatResp2.value;
+
     }
 
     // caso não tenha resultados
@@ -240,10 +277,11 @@ export async function obterTaxonsPrimos(
     const granparent_id =
       correctTaxon.ancestor_ids[correctTaxon.ancestor_ids.length - 2];
     const inatUrl = `${import.meta.env.VITE_HONO_URL}/api/inat/v1/taxa/${granparent_id}?locale=pt-BR`;
+    const fallbackUrl = `https://api.inaturalist.org/v1/taxa/${granparent_id}?locale=pt-BR`;
 
     await new Promise((resolve) => setTimeout(resolve, 1001)); // Adiciona um delay de 1001ms
 
-    const { data: inatResp, error } = await useFetch<INatTaxaResponse>(
+    let { data: inatResp, error } = await useFetch<INatTaxaResponse>(
       inatUrl,
       {
         key: `inat-taxa-grandparent-${granparent_id}`,
@@ -261,10 +299,27 @@ export async function obterTaxonsPrimos(
     );
 
     if (error.value) {
-      console.error(
-        `❌ Erro ao buscar táxons primos para ${correctTaxon.name} na URL ${inatUrl}:`,
-        error,
+      const { data: inatResp2, error: error2 } = await useFetch<INatTaxaResponse>(
+        fallbackUrl,
+        {
+          key: `inat-taxa-grandparent-${granparent_id}`,
+          server: false,
+          default: () => ({
+            results: [],
+            total_results: 0,
+            page: 1,
+            per_page: 0,
+          }),
+        },
       );
+      if (error2.value) {
+        console.error(
+          `❌ Erro ao buscar táxons primos para ${correctTaxon.name} na URL ${fallbackUrl}:`,
+          error,
+        );
+        return [];
+      }
+      inatResp.value = inatResp2.value;
       return [];
     }
 
@@ -307,9 +362,11 @@ export async function obterTaxonsPrimos(
 
       const tioUrl = `${import.meta.env.VITE_HONO_URL}/api/inat/v1/taxa/${tio.id}?locale=pt-BR`;
 
+      const tioFallbackUrl = `https://api.inaturalist.org/v1/taxa/${tio.id}?locale=pt-BR`;
+
       await new Promise((resolve) => setTimeout(resolve, 1001)); // Delay entre requisições
 
-      const { data: tioResp, error: tioError } =
+      let { data: tioResp, error: tioError } =
         await useFetch<INatTaxaResponse>(tioUrl, {
           key: `inat-taxa-uncle-${tio.id}`,
           server: false,
@@ -325,11 +382,28 @@ export async function obterTaxonsPrimos(
         });
 
       if (tioError.value) {
-        console.error(
-          `❌ Erro ao buscar filhos do táxon ${tio.name} na URL ${tioUrl}:`,
-          tioError,
-        );
-        continue; // Tentar próximo tio
+        let { data: tioResp2, error: tioError2 } =
+          await useFetch<INatTaxaResponse>(tioUrl, {
+            key: `inat-taxa-uncle-${tio.id}`,
+            server: false,
+            headers: {
+              "X-API-Key": import.meta.env.VITE_HONO_API_KEY,
+            },
+            default: () => ({
+              results: [],
+              total_results: 0,
+              page: 1,
+              per_page: 0,
+            }),
+          });
+        if (tioError2.value) {
+          console.error(
+            `❌ Erro ao buscar filhos do táxon ${tio.name} na URL ${tioUrl}:`,
+            tioError2,
+          );
+          continue; // Tentar próximo tio
+        }
+        tioResp.value = tioResp2.value;
       }
 
       if (
@@ -383,8 +457,10 @@ export async function obterEspeciesAleatorias(
   try {
     const randomPage = Math.floor(Math.random() * 100) + 1;
     const inatUrl = `${import.meta.env.VITE_HONO_URL}/api/inat/v1/taxa?rank=${rank}&is_active=true&per_page=${count * 2}&page=${randomPage}&locale=pt-BR`;
+    const fallbackUrl = `https://api.inaturalist.org/v1/taxa?rank=${rank}&is_active=true&per_page=${count * 2}&page=${randomPage}&locale=pt-BR`;
+
     await new Promise((resolve) => setTimeout(resolve, 1001)); // Adiciona um delay de 1001ms
-    const { data: inatResp, error } = await useFetch<INatTaxaResponse>(
+    let { data: inatResp, error } = await useFetch<INatTaxaResponse>(
       inatUrl,
       {
         key: `inat-random-${randomPage}-${count}`,
@@ -402,11 +478,27 @@ export async function obterEspeciesAleatorias(
     );
 
     if (error.value) {
+      const { data: inatResp2, error: error2 } = await useFetch<INatTaxaResponse>(
+        fallbackUrl,
+        {
+          key: `inat-random-${randomPage}-${count}`,
+          server: false,
+          default: () => ({
+            results: [],
+            total_results: 0,
+            page: 1,
+            per_page: 0,
+          }),
+        },
+      );
+      if(error2.value){
       console.error(
         `❌ Erro ao buscar espécies aleatórias na URL ${inatUrl}:`,
         error.value,
       );
       return [];
+      }
+      inatResp.value = inatResp2.value;
     }
 
     if (
