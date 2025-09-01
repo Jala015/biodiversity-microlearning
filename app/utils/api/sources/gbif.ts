@@ -177,9 +177,19 @@ export async function obterEspeciesMaisComuns(opcoes: SearchOptions): Promise<{
 //----------------------------//
 
 export async function obterNomeCidade(lat: string, lon: string) {
-  const response = await fetch(
+  const { data: response } = await useFetch<{ cidade: string }>(
     `${import.meta.env.VITE_HONO_URL}/cidade?lat=${lat}&lon=${lon}`,
+    {
+      key: `cidade-${lat}-${lon}`,
+      server: false,
+      headers: {
+        "X-API-Key": import.meta.env.VITE_HONO_API_KEY,
+      },
+      default: () => ({
+        cidade: "",
+      }),
+    },
   );
-  const data = await response.json();
-  return data.cidade;
+
+  return response.value.cidade;
 }
