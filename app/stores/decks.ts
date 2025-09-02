@@ -48,12 +48,6 @@ export const useDecksStore = defineStore("decks", {
     decks: {} as Record<string, DeckState>,
     dbConnection: null as IDBPDatabase | null,
   }),
-  persist: {
-    key: "decks",
-    storage: indexedDB,
-    paths: ["decks"],
-    pick: ["activeDeckId", "dbConnection"],
-  },
   actions: {
     async initDB() {
       if (!this.dbConnection) {
@@ -124,7 +118,6 @@ export const useDecksStore = defineStore("decks", {
       }
     }, 500),
 
-    // CORREÇÃO 3: adicionar cards com cooldown inicial e lastSeenAt
     async addCards(cards: Card[] | Card) {
       const deck = this.getActiveDeck();
       if (!deck) return;
@@ -159,13 +152,12 @@ export const useDecksStore = defineStore("decks", {
       await this.saveDeckDebounced(deck);
     },
 
-    getNextCard():  {
+    getNextCard(): { card: Card; origin: "revisao" | "nova" } | null {
       console.debug("sorteando próximo card");
       const deck = this.getActiveDeck();
       if (!deck) return null;
       console.debug("deck encontrado");
-      
-      let returnValue = null;
+
       const cardsNovos = deck.levelsQueue.filter(
         (c) => c.nivel === deck.currentLevel,
       );
@@ -173,17 +165,34 @@ export const useDecksStore = defineStore("decks", {
 
       // se alguma das filas estiver vazia, retorna o primeiro card da outra fila
       if (!cardsNovos.length && !cardsRevisao.length) return null;
-      if (!cardsNovos.length) return cardsRevisao[0] || null;
-      if (!cardsRevisao.length) return cardsNovos[0] || null;
 
-      const pesoNovos = cardsNovos.length;
-      const pesoRevisao = cardsRevisao.length * deck.config.pesoRevisao;
-      const sorteio = Math.random() * (pesoNovos + pesoRevisao);
+      let selectedCard: Card | null = null;
+      let origin: "revisao" | "nova" = "nova"; // Default to 'nova'
 
-      if (sorteio < pesoRevisao) {
-        return cardsRevisao[0] || null;
+      if (!cardsNovos.length) {
+        selectedCard = cardsRevisao[0] || null;
+        origin = "revisao";
+      } else if (!cardsRevisao.length) {
+        selectedCard = cardsNovos[0] || null;
+        origin = "nova";
       } else {
-        return cardsNovos[0] || null;
+        const pesoNovos = cardsNovos.length;
+        const pesoRevisao = cardsRevisao.length * deck.config.pesoRevisao;
+        const sorteio = Math.random() * (pesoNovos + pesoRevisao);
+
+        if (sorteio < pesoRevisao) {
+          selectedCard = cardsRevisao[0] || null;
+          origin = "revisao";
+        } else {
+          selectedCard = cardsNovos[0] || null;
+          origin = "nova";
+        }
+      }
+
+      if (selectedCard) {
+        return { card: selectedCard, origin };
+      } else {
+        return null;
       }
     },
 
@@ -264,6 +273,7 @@ export const useDecksStore = defineStore("decks", {
       await this.saveDeckDebounced(deck);
     },
 
+    // testa se o deck pode avançar de nível vendo se há cards no nível atual
     canAdvanceLevel(): boolean {
       const deck = this.getActiveDeck();
       if (!deck) return false;
@@ -344,7 +354,37 @@ export const useDecksStore = defineStore("decks", {
       return hasNewCards || hasReviewCards;
     },
 
-    // CORREÇÃO 4: getDeckStats com estatísticas mais precisas
+    // o deck volta a ser como um deck novo, com os cooldowns zerados e todas as cartas na fila de niveis
+    async resetDeck(deckId: string): Promise<void> {
+      console.log("resetando deck");
+      const deck = this.decks[deckId];
+      if (!deck) return;
+
+      //salvar as cartas para chamar o addcards
+      const cards = deck.levelsQueue
+        .concat(deck.cooldownQueue)
+        .concat(deck.reviewQueue);
+
+      // limpar os cooldowns dos cards e lastseenat
+      cards.forEach((card) => {
+        card.cooldown = 0;
+        delete card.lastSeenAt;
+      });
+
+      //limpar as filas
+      deck.levelsQueue = [];
+      deck.cooldownQueue = [];
+      deck.reviewQueue = [];
+
+      //adicionar as cartas novamente
+      await this.addCards(cards);
+
+      deck.currentLevel = "facil";
+      deck.globalCounter = 0;
+      console.info("Cards resetados");
+      await this.saveDeckDebounced(deck);
+    },
+
     getDeckStats() {
       const deck = this.getActiveDeck();
       if (!deck) return null;
@@ -363,6 +403,17 @@ export const useDecksStore = defineStore("decks", {
         deck.cooldownQueue.filter((c) => c.nivel === deck.currentLevel).length +
         deck.reviewQueue.filter((c) => c.nivel === deck.currentLevel).length;
 
+      //obter filas do deck no nivel atual
+      const currentLevelQueue = deck.levelsQueue.filter(
+        (c) => c.nivel === deck.currentLevel,
+      );
+      const currentCooldownQueue = deck.cooldownQueue.filter(
+        (c) => c.nivel === deck.currentLevel,
+      );
+      const currentReviewQueue = deck.reviewQueue.filter(
+        (c) => c.nivel === deck.currentLevel,
+      );
+
       return {
         total: totalCards,
         totalSeen,
@@ -372,6 +423,9 @@ export const useDecksStore = defineStore("decks", {
         new: currentLevelCards.length,
         currentLevel: deck.currentLevel,
         globalCounter: deck.globalCounter,
+        currentLevelQueue,
+        currentCooldownQueue,
+        currentReviewQueue,
       };
     },
   },

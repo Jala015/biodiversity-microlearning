@@ -32,7 +32,7 @@
 </style>
 
 <script setup>
-import { onMounted, onBeforeUnmount, defineEmits } from "vue";
+import { onMounted, onBeforeUnmount } from "vue";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet-draw";

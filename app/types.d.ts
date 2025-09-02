@@ -6,7 +6,7 @@ export interface Card {
   nomePopular?: string;
   nivel: "facil" | "medio" | "dificil" | "desafio";
   cooldown: number;
-  lastSeenAt: number;
+  lastSeenAt?: number;
   alternativas_erradas: Especie[];
   imagem: MediaEspecie;
   nivel_taxonomico?: string;

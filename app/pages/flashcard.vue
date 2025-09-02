@@ -1,161 +1,285 @@
 <!-- pages/estudo.vue -->
 <script setup>
-import { computed, ref, onMounted } from "vue";
+import { computed, ref, onMounted, nextTick } from "vue";
 import { useDecksStore } from "~/stores/decks";
 
 const store = useDecksStore();
-const currentCard = ref();
+const currentCard = ref(null);
+const currentCardOrigin = ref(null);
+const updater = ref(0);
 
-onMounted(() => {
-    currentCard.value = store.getNextCard();
-});
+// Função para buscar próximo card
+function fetchNextCard() {
+    const cardData = store.getNextCard();
+    console.debug("📋 Próximo card obtido:", cardData);
 
-// Status atual baseado na origem do card
-const status_atual = computed(() => {
-    const deck = store.getActiveDeck();
-    if (!deck || !currentCard.value) return "carregando";
+    if (cardData && cardData.card) {
+        const card = cardData.card;
+        console.debug("🔍 Detalhes do card:", {
+            id: card.id,
+            taxon: card.taxon,
+            nomePopular: card.nomePopular,
+            keys: Object.keys(card),
+            card: card,
+        });
 
-    const isReview = deck.reviewQueue.some(
-        (c) => c.id === currentCard.value.id,
-    );
-    return isReview ? "revisao" : "nova";
-});
-
-// Processar resposta
-function handleAnswer(acertou) {
-    console.debug("resposta do usuário:", acertou);
-    const card = currentCard.value;
-    if (card) {
-        store.answerCard(card, acertou);
-        currentCard.value = store.getNextCard();
+        // Verificar se é um card válido (deve ter pelo menos id e taxon)
+        if (card.id && card.taxon) {
+            currentCard.value = card;
+            currentCardOrigin.value = cardData.origin;
+            console.debug(
+                "✅ Card válido definido:",
+                card.nomePopular || card.taxon,
+            );
+        } else {
+            console.error(
+                "❌ Card inválido - propriedades obrigatórias em falta:",
+                card,
+            );
+            currentCard.value = null;
+            currentCardOrigin.value = null;
+        }
+    } else {
+        currentCard.value = null;
+        currentCardOrigin.value = null;
+        console.debug("❌ Nenhum card disponível");
     }
 }
 
-// Estatísticas
-const deckStats = computed(() => store.getDeckStats());
+onMounted(() => {
+    console.debug("🚀 Iniciando página de estudo");
+    fetchNextCard();
+});
 
-// NOVO: verificar se ainda existem cards
-const hasAnyCards = computed(() => {
-    const stats = deckStats.value;
-    return stats && (stats.new > 0 || stats.review > 0 || canAdvance.value);
+// Processar resposta
+async function handleAnswer(acertou) {
+    console.debug(
+        "💭 Resposta do usuário:",
+        acertou ? "✅ Acertou" : "❌ Errou",
+    );
+
+    const card = currentCard.value;
+    if (!card) {
+        console.warn("⚠️ Tentativa de responder sem card ativo");
+        return;
+    }
+
+    // Log detalhado do card antes de processar
+    console.debug("🔄 Processando resposta para card:", {
+        id: card.id,
+        taxon: card.taxon,
+        nomePopular: card.nomePopular,
+        object: card,
+    });
+
+    // Processar a resposta no store
+    store.answerCard(card, acertou);
+
+    // Aguardar próximo tick para garantir que o estado foi atualizado
+    await nextTick();
+
+    // Buscar próximo card
+    fetchNextCard();
+
+    // Forçar re-renderização
+    updater.value++;
+
+    console.debug("✅ Resposta processada, próximo card carregado");
+}
+
+// Estatísticas reativas
+const deckStats = computed(() => {
+    const stats = store.getDeckStats();
+    console.debug("📊 Stats atualizadas:", stats);
+    return stats;
+});
+
+// Verificar se pode avançar nível
+const canAdvance = computed(() => {
+    const can = store.canAdvanceLevel();
+    console.debug("🎚️ Pode avançar nível:", can);
+    return can;
 });
 
 function traduzirTaxonLevel(level) {
     if (!level) return "";
-    switch (level) {
-        case "kingdom":
-            return "reino";
-        case "phylum":
-            return "filo";
-        case "class":
-            return "classe";
-        case "order":
-            return "ordem";
-        case "family":
-            return "família";
-        case "genus":
-            return "gênero";
-        case "species":
-            return "espécie";
-        default:
-            return "";
-    }
+    const traducoes = {
+        kingdom: "reino",
+        phylum: "filo",
+        class: "classe",
+        order: "ordem",
+        family: "família",
+        genus: "gênero",
+        species: "espécie",
+    };
+    return traducoes[level] || level;
 }
 
-const canAdvance = computed(() => store.canAdvanceLevel());
-
 function advanceLevel() {
+    console.debug("🚀 Avançando para próximo nível");
     store.advanceLevel();
-    store.getNextCard();
+    fetchNextCard();
+    updater.value++;
+}
+
+function resetDeck() {
+    console.debug("🔄 Resetando deck");
+    const activeDeck = store.getActiveDeck();
+    if (activeDeck) {
+        store.resetDeck(activeDeck.id);
+        fetchNextCard();
+        updater.value++;
+    }
 }
 </script>
 
 <template>
-    <div>
+    <div class="min-h-screen">
         <!-- Loading/End state -->
         <div
             v-if="!currentCard"
             class="flex items-center justify-center min-h-screen"
         >
-            <div class="text-center">
-                <!-- Loading -->
-                <div
-                    class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"
-                    v-if="!deckStats"
-                ></div>
-
+            <div class="text-center p-6">
                 <!-- Nível concluído -->
-                <div v-if="deckStats && canAdvance" class="text-gray-600">
-                    🎉 Você concluiu o nível {{ deckStats.currentLevel }}!
-                    <button @click="advanceLevel" class="btn block my-4">
-                        Avançar para o próximo nível
+                <div v-if="canAdvance" class="space-y-4">
+                    <div class="text-6xl">🎉</div>
+                    <h2 class="text-2xl font-bold text-gray-800">
+                        Nível {{ deckStats?.currentLevel }} Concluído!
+                    </h2>
+                    <p class="text-gray-600">
+                        Parabéns! Você completou todos os cards deste nível.
+                    </p>
+                    <button
+                        @click="advanceLevel"
+                        class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+                    >
+                        Avançar para o Próximo Nível
                     </button>
                 </div>
 
                 <!-- Deck concluído -->
                 <div
-                    v-else-if="deckStats && !hasAnyCards"
-                    class="text-gray-600"
+                    v-else-if="deckStats?.totalSeen === deckStats?.total"
+                    class="space-y-4"
                 >
-                    🏆 Parabéns! Você concluiu todo o deck!
+                    <div class="text-6xl">🏆</div>
+                    <h2 class="text-2xl font-bold text-gray-800">
+                        Deck Concluído!
+                    </h2>
+                    <p class="text-gray-600">
+                        Parabéns! Você completou todo o deck de biodiversidade!
+                    </p>
                 </div>
 
-                <!-- Carregando próximo -->
-                <p v-else>Carregando próximo card...</p>
+                <!-- Aguardando cards -->
+                <div v-else class="space-y-4">
+                    <div class="text-6xl">⏳</div>
+                    <h2 class="text-2xl font-bold text-gray-800">
+                        Aguardando Cards
+                    </h2>
+                    <p class="text-gray-600">
+                        Todos os cards estão em cooldown. Continue estudando
+                        para liberar mais!
+                    </p>
+                </div>
 
                 <!-- Estatísticas -->
-                <div v-if="deckStats" class="mt-4 text-sm text-gray-500">
-                    <p>📊 Estatísticas:</p>
-                    <p>
-                        Nível {{ deckStats.currentLevel }}:
-                        {{ deckStats.currentLevelSeen }}/{{
-                            deckStats.currentLevelTotal
-                        }}
-                        cards vistos
-                    </p>
-                    <p>
-                        Total do deck: {{ deckStats.totalSeen }}/{{
-                            deckStats.total
-                        }}
-                        cards
-                    </p>
-                    <p>Aguardando revisão: {{ deckStats.review }}</p>
-                    <p>Contador global: {{ deckStats.globalCounter }}</p>
+                <div
+                    v-if="deckStats"
+                    class="mt-8 bg-white rounded-lg p-4 shadow-sm"
+                >
+                    <h3 class="text-lg font-semibold mb-3">📊 Estatísticas</h3>
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-blue-600">
+                                {{ deckStats.currentLevelSeen }}
+                            </div>
+                            <div class="text-gray-500">
+                                de {{ deckStats.currentLevelTotal }} vistos
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-green-600">
+                                {{ deckStats.review }}
+                            </div>
+                            <div class="text-gray-500">aguardando revisão</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-purple-600">
+                                {{ deckStats.totalSeen }}
+                            </div>
+                            <div class="text-gray-500">
+                                de {{ deckStats.total }} total
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-orange-600">
+                                {{ deckStats.globalCounter }}
+                            </div>
+                            <div class="text-gray-500">contador global</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Card de estudo -->
-        <div v-else>
+        <div v-else class="pb-24">
+            <!-- Banner do status -->
             <DeckBanner
-                :status_atual="status_atual"
+                :status_atual="currentCardOrigin"
                 :taxon_level="traduzirTaxonLevel(currentCard.nivel_taxonomico)"
             />
 
+            <!-- Pergunta -->
             <DeckQuestion
                 :card="currentCard"
                 @resposta="handleAnswer"
-                :key="currentCard.id"
+                :key="`card-${currentCard.id}-${updater}`"
             />
+        </div>
 
-            <!-- Debug -->
-            <div
-                v-if="deckStats"
-                class="fixed bottom-4 right-4 bg-black bg-opacity-50 text-white p-2 rounded text-xs"
+        <!-- Debug Panel (fixo no canto) -->
+        <div
+            class="fixed bottom-24 right-4 bg-black bg-opacity-80 text-white p-3 rounded-lg text-xs space-y-2 max-w-xs"
+        >
+            <button
+                class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs w-full transition-colors"
+                @click="resetDeck"
             >
-                <p>
-                    🎯 {{ deckStats.currentLevel }} | 🔄
+                🔄 Resetar Deck
+            </button>
+
+            <div v-if="deckStats" class="space-y-1">
+                <div class="font-semibold">
+                    🎯 {{ deckStats.currentLevel }} | 🔢
                     {{ deckStats.globalCounter }}
-                </p>
-                <p>
+                </div>
+                <div>
                     📚 Novos: {{ deckStats.new }} | 🔄 Revisão:
                     {{ deckStats.review }}
-                </p>
-                <p>
+                </div>
+                <div>
                     👁️ Nível: {{ deckStats.currentLevelSeen }}/{{
                         deckStats.currentLevelTotal
                     }}
-                </p>
+                </div>
+                <div class="text-yellow-300">
+                    🎮 Card:
+                    {{
+                        currentCard?.nomePopular ||
+                        currentCard?.taxon ||
+                        currentCard?.id ||
+                        "Nenhum"
+                    }}
+                </div>
+                <div class="text-blue-300">
+                    📍 Origem: {{ currentCardOrigin || "N/A" }}
+                </div>
+                <div class="text-green-300 text-xs" v-if="currentCard">
+                    🔑 Keys: {{ Object.keys(currentCard).join(", ") }}
+                </div>
             </div>
         </div>
     </div>
