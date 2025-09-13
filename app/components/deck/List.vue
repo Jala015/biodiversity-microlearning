@@ -20,7 +20,7 @@ defineProps<{
             >
                 <DeckCachedImage
                     v-if="deck.levelsQueue[0] || deck.reviewQueue[0]"
-                    class="-z-10 absolute opacity-5"
+                    class="-z-10 absolute opacity-10"
                     :url="
                         deck.levelsQueue[0]?.imagem.identifier ??
                         deck.reviewQueue[0]?.imagem.identifier ??
@@ -30,21 +30,19 @@ defineProps<{
                 <div class="tag" v-if="deck.config.favorite">
                     <PhTagChevron weight="fill" />
                 </div>
-                <div class="card-body">
-                    <h3 class="text-xl font-bold">{{ deck.config.nome }}</h3>
-                    <p v-if="deck.config.descricao">
-                        {{ deck.config.descricao }}
-                    </p>
-                    <ul class="list font-mono space-y-1" v-else>
-                        <li>
-                            Cartas para aprender:&Tab;
-                            {{ deck.levelsQueue.length }}
-                        </li>
-                        <li>
-                            Cartas para revisar:&nbsp;&Tab;
-                            {{ deck.reviewQueue.length }}
-                        </li>
-                    </ul>
+                <div class="card-body flex justify-center items-center">
+                    <div class="text-center">
+                        <h3 class="text-xl font-bold">
+                            {{ deck.config.nome }}
+                        </h3>
+                        <p v-if="deck.config.descricao">
+                            {{ deck.config.descricao }}
+                        </p>
+                        <!-- Mostrar nível atual -->
+                        <p v-if="deck.levelsQueue[0]">
+                            Nível atual: {{ deck.levelsQueue[0].nivel }}
+                        </p>
+                    </div>
                 </div>
                 <div class="card-actions justify-end p-2">
                     <button
@@ -62,10 +60,10 @@ defineProps<{
                     </button>
                 </div>
             </div>
-            <div class="card shadow-md bg-base-200 dark:brightness-110">
+            <div class="card shadow-md bg-base-100 dark:brightness-110">
                 <div class="card-body"></div>
             </div>
-            <div class="card shadow-md bg-base-200 dark:brightness-105">
+            <div class="card shadow-md bg-base-100 dark:brightness-105">
                 <div class="card-body"></div>
             </div>
         </button>

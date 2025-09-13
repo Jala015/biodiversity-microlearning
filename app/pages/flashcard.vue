@@ -8,6 +8,9 @@ const currentCard = ref(null);
 const currentCardOrigin = ref(null);
 const updater = ref(0);
 
+const feedback_acertou_visivel = ref(false);
+const feedback_erro_visivel = ref(false);
+
 // Função para buscar próximo card
 function fetchNextCard() {
     const cardData = store.getNextCard();
@@ -74,7 +77,17 @@ async function handleAnswer(acertou) {
 
     // Processar a resposta no store
     await store.answerCard(card, acertou);
-
+    if (acertou) {
+        feedback_acertou_visivel.value = true;
+        await new Promise((resolve) => setTimeout(resolve, 2500));
+        feedback_acertou_visivel.value = false;
+        await new Promise((resolve) => setTimeout(resolve, 500));
+    } else {
+        feedback_erro_visivel.value = true;
+        await new Promise((resolve) => setTimeout(resolve, 4000));
+        feedback_erro_visivel.value = false;
+        await new Promise((resolve) => setTimeout(resolve, 500));
+    }
     // Aguardar próximo tick para garantir que o estado foi atualizado
     await nextTick();
 
@@ -239,6 +252,46 @@ function resetDeck() {
                 :key="`card-${currentCard.id}-${updater}`"
             />
 
+            <!-- Feedback da resposta positiva -->
+            <Transition name="fade">
+                <div
+                    v-if="feedback_acertou_visivel"
+                    class="w-screen top-0 h-screen flex items-center justify-center fixed z-50"
+                >
+                    <div
+                        class="card font-black text-4xl xl:text-6xl p-12 outline-success/50 -mt-20 outline-8 outline-offset-0 rounded-full bg-success flex justify-center shadow-md items-center"
+                    >
+                        <span class="drop-shadow-lg"> Acertou! </span>
+                    </div>
+                </div>
+            </Transition>
+
+            <!-- Feedback da resposta negativa -->
+            <Transition name="fade">
+                <div
+                    v-if="feedback_erro_visivel"
+                    class="w-screen top-0 h-screen flex items-center justify-center fixed z-50"
+                >
+                    <div
+                        class="card font-black text-error-content text-4xl xl:text-6xl p-6 outline-error/50 -mt-20 outline-8 outline-offset-0 rounded-full bg-error/80 flex justify-center shadow-md items-center"
+                    >
+                        <div class="drop-shadow-lg">Errou!</div>
+                        <div class="text-xl">
+                            Resposta correta:
+                            <span class="italic">
+                                {{ currentCard.taxon }}
+                            </span>
+                            <span
+                                class="lowercase"
+                                v-if="currentCard.nomePopular"
+                            >
+                                ({{ currentCard.nomePopular }})</span
+                            >
+                        </div>
+                    </div>
+                </div>
+            </Transition>
+
             <!-- Debug Panel (abaixo do DeckQuestion) -->
             <div
                 class="mt-6 mx-4 bg-black bg-opacity-80 text-white p-4 rounded-lg text-xs space-y-3"
@@ -396,3 +449,26 @@ function resetDeck() {
         </div>
     </div>
 </template>
+
+<style>
+.fade-enter-active,
+.fade-leave-active {
+    transition: all 0.5s;
+}
+
+.fade-enter,
+.fade-leave-to {
+    opacity: 0;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
+    scale: 0.5;
+}
+
+.fade-enter-to,
+.fade-leave-from {
+    opacity: 1;
+}
+</style>
