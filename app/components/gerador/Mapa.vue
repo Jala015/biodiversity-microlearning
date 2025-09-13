@@ -1,7 +1,7 @@
 <template>
     <div
         id="map-container"
-        style="position: relative; height: 500px; width: 100%"
+        style="position: relative; height: 400px; width: 100%"
     >
         <div id="map" style="height: 100%; width: 100%"></div>
         <button @click="locateUser" class="locate-btn">
