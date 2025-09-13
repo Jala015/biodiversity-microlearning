@@ -225,7 +225,7 @@ function resetDeck() {
         </div>
 
         <!-- Card de estudo -->
-        <div v-else class="pb-24">
+        <div v-else class="pb-6">
             <!-- Banner do status -->
             <DeckBanner
                 :status_atual="currentCardOrigin"
@@ -238,47 +238,159 @@ function resetDeck() {
                 @resposta="handleAnswer"
                 :key="`card-${currentCard.id}-${updater}`"
             />
-        </div>
 
-        <!-- Debug Panel (fixo no canto) -->
-        <div
-            class="fixed bottom-24 right-4 bg-black bg-opacity-80 text-white p-3 rounded-lg text-xs space-y-2 max-w-xs"
-        >
-            <button
-                class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs w-full transition-colors"
-                @click="resetDeck"
+            <!-- Debug Panel (abaixo do DeckQuestion) -->
+            <div
+                class="mt-6 mx-4 bg-black bg-opacity-80 text-white p-4 rounded-lg text-xs space-y-3"
             >
-                🔄 Resetar Deck
-            </button>
+                <button
+                    class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs w-full transition-colors"
+                    @click="resetDeck"
+                >
+                    🔄 Resetar Deck
+                </button>
 
-            <div v-if="deckStats" class="space-y-1">
-                <div class="font-semibold">
-                    🎯 {{ deckStats.currentLevel }} | 🔢
-                    {{ deckStats.globalCounter }}
-                </div>
-                <div>
-                    📚 Novos: {{ deckStats.new }} | 🔄 Revisão:
-                    {{ deckStats.review }}
-                </div>
-                <div>
-                    👁️ Nível: {{ deckStats.currentLevelSeen }}/{{
-                        deckStats.currentLevelTotal
-                    }}
-                </div>
-                <div class="text-yellow-300">
-                    🎮 Card:
-                    {{
-                        currentCard?.nomePopular ||
-                        currentCard?.taxon ||
-                        currentCard?.id ||
-                        "Nenhum"
-                    }}
-                </div>
-                <div class="text-blue-300">
-                    📍 Origem: {{ currentCardOrigin || "N/A" }}
-                </div>
-                <div class="text-green-300 text-xs" v-if="currentCard">
-                    🔑 Keys: {{ Object.keys(currentCard).join(", ") }}
+                <div v-if="deckStats" class="space-y-2">
+                    <div class="font-semibold">
+                        🎯 {{ deckStats.currentLevel }} | 🔢
+                        {{ deckStats.globalCounter }}
+                    </div>
+                    <div>
+                        📚 Novos: {{ deckStats.new }} | 🔄 Revisão:
+                        {{ deckStats.review }}
+                    </div>
+                    <div>
+                        👁️ Nível: {{ deckStats.currentLevelSeen }}/{{
+                            deckStats.currentLevelTotal
+                        }}
+                    </div>
+                    <div class="text-yellow-300">
+                        🎮 Card:
+                        {{
+                            currentCard?.nomePopular ||
+                            currentCard?.taxon ||
+                            currentCard?.id ||
+                            "Nenhum"
+                        }}
+                    </div>
+                    <div class="text-blue-300">
+                        📍 Origem: {{ currentCardOrigin || "N/A" }}
+                    </div>
+
+                    <!-- Filas de espécies -->
+                    <div class="space-y-2 pt-2 border-t border-gray-600">
+                        <div class="font-semibold text-green-400">
+                            📋 Filas por Espécies:
+                        </div>
+
+                        <!-- Fila de novos -->
+                        <div class="bg-blue-900 bg-opacity-50 p-2 rounded">
+                            <div class="font-semibold text-blue-300">
+                                📚 Novos ({{
+                                    deckStats.currentLevelQueue?.length || 0
+                                }}):
+                            </div>
+                            <div
+                                class="text-xs text-blue-200 max-h-20 overflow-y-auto"
+                            >
+                                <div v-if="deckStats.currentLevelQueue?.length">
+                                    <div
+                                        v-for="card in deckStats.currentLevelQueue"
+                                        :key="card.id"
+                                        class="truncate"
+                                    >
+                                        •
+                                        {{
+                                            card.nomePopular ||
+                                            card.taxon ||
+                                            card.id
+                                        }}
+                                    </div>
+                                </div>
+                                <div v-else class="text-gray-400 italic">
+                                    Nenhum card novo
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Fila de revisão -->
+                        <div class="bg-green-900 bg-opacity-50 p-2 rounded">
+                            <div class="font-semibold text-green-300">
+                                🔄 Revisão ({{
+                                    deckStats.currentReviewQueue?.length || 0
+                                }}):
+                            </div>
+                            <div
+                                class="text-xs text-green-200 max-h-20 overflow-y-auto"
+                            >
+                                <div
+                                    v-if="deckStats.currentReviewQueue?.length"
+                                >
+                                    <div
+                                        v-for="card in deckStats.currentReviewQueue"
+                                        :key="card.id"
+                                        class="truncate"
+                                    >
+                                        •
+                                        {{
+                                            card.nomePopular ||
+                                            card.taxon ||
+                                            card.id
+                                        }}
+                                    </div>
+                                </div>
+                                <div v-else class="text-gray-400 italic">
+                                    Nenhum card em revisão
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Fila de cooldown -->
+                        <div class="bg-orange-900 bg-opacity-50 p-2 rounded">
+                            <div class="font-semibold text-orange-300">
+                                ⏳ Cooldown ({{
+                                    deckStats.currentCooldownQueue?.length || 0
+                                }}):
+                            </div>
+                            <div
+                                class="text-xs text-orange-200 max-h-20 overflow-y-auto"
+                            >
+                                <div
+                                    v-if="
+                                        deckStats.currentCooldownQueue?.length
+                                    "
+                                >
+                                    <div
+                                        v-for="card in deckStats.currentCooldownQueue"
+                                        :key="card.id"
+                                        class="truncate"
+                                    >
+                                        •
+                                        {{
+                                            card.nomePopular ||
+                                            card.taxon ||
+                                            card.id
+                                        }}
+                                        <span class="text-gray-300"
+                                            >({{
+                                                card.cooldown -
+                                                (deckStats.globalCounter -
+                                                    card.lastSeenAt)
+                                            }}
+                                            restantes)</span
+                                        >
+                                    </div>
+                                </div>
+                                <div v-else class="text-gray-400 italic">
+                                    Nenhum card em cooldown
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-green-300 text-xs" v-if="currentCard">
+                        🔑 Keys: {{ Object.keys(currentCard).join(", ") }}
+                    </div>
                 </div>
             </div>
         </div>

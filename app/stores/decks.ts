@@ -124,7 +124,18 @@ export const useDecksStore = defineStore("decks", {
       if (!Array.isArray(cards)) cards = [cards];
 
       cards.forEach((c) => {
-        if (!deck.levelsQueue.some((card) => card.id === c.id)) {
+        // Verificar duplicatas em todas as filas
+        const existsInLevels = deck.levelsQueue.some(
+          (card) => card.id === c.id,
+        );
+        const existsInCooldown = deck.cooldownQueue.some(
+          (card) => card.id === c.id,
+        );
+        const existsInReview = deck.reviewQueue.some(
+          (card) => card.id === c.id,
+        );
+
+        if (!existsInLevels && !existsInCooldown && !existsInReview) {
           if (
             c.cooldown === undefined ||
             c.cooldown === null ||
@@ -190,6 +201,7 @@ export const useDecksStore = defineStore("decks", {
       }
 
       if (selectedCard) {
+        console.debug(`Selected card: ${selectedCard.id}, origin: ${origin}`);
         return { card: selectedCard, origin };
       } else {
         return null;
@@ -199,10 +211,11 @@ export const useDecksStore = defineStore("decks", {
     async answerCard(card: Card, acertou: boolean) {
       const deck = this.getActiveDeck();
       if (!deck) return;
-
+      console.debug(1);
       await this.incrementGlobalCounter();
       await this.updateCooldown(card, acertou);
       await this.saveDeckDebounced(deck);
+      console.debug(2);
     },
 
     async updateCooldown(card: Card, acertou: boolean) {
@@ -360,10 +373,17 @@ export const useDecksStore = defineStore("decks", {
       const deck = this.decks[deckId];
       if (!deck) return;
 
-      //salvar as cartas para chamar o addcards
-      const cards = deck.levelsQueue
+      //salvar as cartas removendo duplicatas
+      const allCards = deck.levelsQueue
         .concat(deck.cooldownQueue)
         .concat(deck.reviewQueue);
+
+      // Remover duplicatas usando Map baseado no ID
+      const uniqueCardsMap = new Map();
+      allCards.forEach((card) => {
+        uniqueCardsMap.set(card.id, card);
+      });
+      const cards = Array.from(uniqueCardsMap.values());
 
       // limpar os cooldowns dos cards e lastseenat
       cards.forEach((card) => {
