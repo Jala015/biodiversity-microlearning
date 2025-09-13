@@ -204,6 +204,12 @@ function resetDeck() {
                     <p class="text-gray-600">
                         Parabéns! Você completou todo o deck de biodiversidade!
                     </p>
+                    <button
+                        class="btn mx-auto block btn-error m-2"
+                        @click="resetDeck"
+                    >
+                        Reiniciar Deck
+                    </button>
                 </div>
 
                 <!-- Aguardando cards -->
@@ -221,9 +227,11 @@ function resetDeck() {
                 <!-- Estatísticas -->
                 <div
                     v-if="deckStats"
-                    class="mt-8 bg-white rounded-lg p-4 shadow-sm"
+                    class="mt-8 bg-base-100 rounded-lg p-4 shadow-sm"
                 >
-                    <h3 class="text-lg font-semibold mb-3">📊 Estatísticas</h3>
+                    <h3 class="text-lg font-semibold text-base-content mb-3">
+                        📊 Estatísticas
+                    </h3>
                     <div class="grid grid-cols-2 gap-4 text-sm">
                         <div class="text-center">
                             <div class="text-2xl font-bold text-blue-600">
