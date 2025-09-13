@@ -1,6 +1,6 @@
 <!-- pages/estudo.vue -->
 <script setup>
-import { computed, ref, onMounted, nextTick } from "vue";
+import { computed, ref, onMounted, onUnmounted, nextTick } from "vue";
 import { useDecksStore } from "~/stores/decks";
 
 const store = useDecksStore();
@@ -10,6 +10,7 @@ const updater = ref(0);
 
 const feedback_acertou_visivel = ref(false);
 const feedback_erro_visivel = ref(false);
+const debugVisible = ref(false);
 
 // Função para buscar próximo card
 function fetchNextCard() {
@@ -49,9 +50,29 @@ function fetchNextCard() {
     }
 }
 
+// Função para toggle do debug panel
+function handleKeyDown(event) {
+    if (event.ctrlKey && event.altKey && event.key.toLowerCase() === "i") {
+        debugVisible.value = !debugVisible.value;
+        console.debug(
+            debugVisible.value
+                ? "🐛 Debug panel ativado"
+                : "🐛 Debug panel desativado",
+        );
+    }
+}
+
 onMounted(() => {
     console.debug("🚀 Iniciando página de estudo");
     fetchNextCard();
+
+    // Adicionar listener para Ctrl+Alt+I
+    window.addEventListener("keydown", handleKeyDown);
+});
+
+onUnmounted(() => {
+    // Remover listener ao desmontar componente
+    window.removeEventListener("keydown", handleKeyDown);
 });
 
 // Processar resposta
@@ -292,8 +313,9 @@ function resetDeck() {
                 </div>
             </Transition>
 
-            <!-- Debug Panel (abaixo do DeckQuestion) -->
+            <!-- Debug Panel (abaixo do DeckQuestion) - Ctrl+Alt+I para toggle -->
             <div
+                v-if="debugVisible"
                 class="mt-6 mx-4 bg-black bg-opacity-80 text-white p-4 rounded-lg text-xs space-y-3"
             >
                 <button
