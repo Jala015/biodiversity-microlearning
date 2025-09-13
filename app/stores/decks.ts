@@ -164,18 +164,27 @@ export const useDecksStore = defineStore("decks", {
     },
 
     getNextCard(): { card: Card; origin: "revisao" | "nova" } | null {
-      console.debug("sorteando próximo card");
+      console.debug("🎲 === INÍCIO getNextCard ===");
       const deck = this.getActiveDeck();
       if (!deck) return null;
-      console.debug("deck encontrado");
 
       const cardsNovos = deck.levelsQueue.filter(
         (c) => c.nivel === deck.currentLevel,
       );
       const cardsRevisao = deck.reviewQueue;
 
+      console.debug("📊 Estado das filas:", {
+        currentLevel: deck.currentLevel,
+        cardsNovos: cardsNovos.length,
+        cardsRevisao: cardsRevisao.length,
+        globalCounter: deck.globalCounter,
+      });
+
       // se alguma das filas estiver vazia, retorna o primeiro card da outra fila
-      if (!cardsNovos.length && !cardsRevisao.length) return null;
+      if (!cardsNovos.length && !cardsRevisao.length) {
+        console.debug("❌ Nenhuma carta disponível");
+        return null;
+      }
 
       let selectedCard: Card | null = null;
       let origin: "revisao" | "nova" = "nova"; // Default to 'nova'
@@ -201,9 +210,13 @@ export const useDecksStore = defineStore("decks", {
       }
 
       if (selectedCard) {
-        console.debug(`Selected card: ${selectedCard.id}, origin: ${origin}`);
+        console.debug(
+          `🎯 Carta selecionada: ${selectedCard.id} (${selectedCard.nomePopular || selectedCard.taxon}), origin: ${origin}`,
+        );
+        console.debug("🎲 === FIM getNextCard ===");
         return { card: selectedCard, origin };
       } else {
+        console.debug("❌ Nenhuma carta selecionada");
         return null;
       }
     },
@@ -240,17 +253,42 @@ export const useDecksStore = defineStore("decks", {
       }
       card.lastSeenAt = deck.globalCounter;
 
+      console.debug(`🔄 === REMOVENDO CARTA ${card.id} DAS FILAS ===`);
+      console.debug("📊 Antes da remoção:", {
+        levelsQueue: deck.levelsQueue.length,
+        reviewQueue: deck.reviewQueue.length,
+        cooldownQueue: deck.cooldownQueue.length,
+      });
+
+      const beforeLevels = deck.levelsQueue.length;
+      const beforeReview = deck.reviewQueue.length;
+
       deck.reviewQueue = deck.reviewQueue.filter((c) => c.id !== card.id);
       deck.levelsQueue = deck.levelsQueue.filter((c) => c.id !== card.id);
 
+      console.debug("📊 Após remoção:", {
+        levelsQueue: deck.levelsQueue.length,
+        reviewQueue: deck.reviewQueue.length,
+        removidaDeLevels: beforeLevels !== deck.levelsQueue.length,
+        removidaDeReview: beforeReview !== deck.reviewQueue.length,
+      });
+
       // verifica se o cooldownQueue já contém o card
       const idx = deck.cooldownQueue.findIndex((c) => c.id === card.id);
-      if (idx === -1) deck.cooldownQueue.push(card);
-      else deck.cooldownQueue[idx] = card;
+      if (idx === -1) {
+        deck.cooldownQueue.push(card);
+        console.debug(
+          `➕ Carta adicionada ao cooldown (posição ${deck.cooldownQueue.length - 1})`,
+        );
+      } else {
+        deck.cooldownQueue[idx] = card;
+        console.debug(`🔄 Carta atualizada no cooldown (posição ${idx})`);
+      }
 
       console.debug(
-        `Card ${card.id} com cooldown ${card.cooldown}, será revisado após ${card.cooldown} jogadas`,
+        `✅ Card ${card.id} com cooldown ${card.cooldown}, será revisado após ${card.cooldown} jogadas`,
       );
+      console.debug("🔄 === FIM updateCooldown ===");
     },
 
     // CORREÇÃO 6: refreshReviewQueue com debug e deduplicação
@@ -258,21 +296,30 @@ export const useDecksStore = defineStore("decks", {
       const deck = this.getActiveDeck();
       if (!deck) return;
 
+      console.debug("🔄 === REFRESH REVIEW QUEUE ===");
+      console.debug(`🕐 GlobalCounter: ${deck.globalCounter}`);
+
       const ready = deck.cooldownQueue.filter((c) => {
         const cooldownPassed = deck.globalCounter - c.lastSeenAt >= c.cooldown;
+        const remaining = c.cooldown - (deck.globalCounter - c.lastSeenAt);
         if (cooldownPassed) {
           console.debug(
-            `Card ${c.id} pronto para revisão: ${deck.globalCounter} - ${c.lastSeenAt} >= ${c.cooldown}`,
+            `✅ Card ${c.id} pronto para revisão: ${deck.globalCounter} - ${c.lastSeenAt} >= ${c.cooldown}`,
+          );
+        } else {
+          console.debug(
+            `⏳ Card ${c.id} ainda em cooldown: faltam ${remaining} turnos`,
           );
         }
         return cooldownPassed;
       });
 
       if (ready.length > 0) {
-        console.debug(`Movendo ${ready.length} cards para revisão`);
+        console.debug(`📤 Movendo ${ready.length} cards para revisão`);
         ready.sort((a, b) => a.lastSeenAt - b.lastSeenAt);
 
         const readyIds = ready.map((c) => c.id);
+        const beforeReviewCount = deck.reviewQueue.length;
         deck.reviewQueue = deck.reviewQueue.filter(
           (c) => !readyIds.includes(c.id),
         );
@@ -281,7 +328,17 @@ export const useDecksStore = defineStore("decks", {
         deck.cooldownQueue = deck.cooldownQueue.filter(
           (c) => !ready.includes(c),
         );
+
+        console.debug(
+          `📊 Review queue: ${beforeReviewCount} → ${deck.reviewQueue.length}`,
+        );
+        console.debug(
+          `📊 Cooldown queue: ${deck.cooldownQueue.length + ready.length} → ${deck.cooldownQueue.length}`,
+        );
+      } else {
+        console.debug("⏸️  Nenhuma carta pronta para revisão");
       }
+      console.debug("🔄 === FIM REFRESH REVIEW QUEUE ===");
 
       await this.saveDeckDebounced(deck);
     },

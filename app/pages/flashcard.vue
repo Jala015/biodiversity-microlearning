@@ -73,7 +73,7 @@ async function handleAnswer(acertou) {
     });
 
     // Processar a resposta no store
-    store.answerCard(card, acertou);
+    await store.answerCard(card, acertou);
 
     // Aguardar próximo tick para garantir que o estado foi atualizado
     await nextTick();
